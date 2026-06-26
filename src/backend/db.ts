@@ -99,7 +99,7 @@ export async function getLiveParkingData(): Promise<LiveParkingPoint[]> {
       available,
       "scrapedAt"
     FROM ranked
-    WHERE rn = 1 OR rn IS NULL
+    WHERE rn = 1
     ORDER BY name ASC
   `);
 
@@ -110,27 +110,34 @@ export async function getLiveParkingData(): Promise<LiveParkingPoint[]> {
 }
 
 function getRange(bucket: AggregateBucket, month?: string) {
+  const now = new Date();
+
   if (bucket === "last_month") {
+    const from = new Date(now);
+    from.setMonth(from.getMonth() - 1);
     return {
-      fromSql: "NOW() - INTERVAL '1 month'",
-      toSql: "NOW()",
-      params: [] as string[],
+      from,
+      to: now,
     };
   }
 
   if (bucket === "last_3_months") {
+    const from = new Date(now);
+    from.setMonth(from.getMonth() - 3);
     return {
-      fromSql: "NOW() - INTERVAL '3 months'",
-      toSql: "NOW()",
-      params: [] as string[],
+      from,
+      to: now,
     };
   }
 
   const selected = month && /^\d{4}-\d{2}$/.test(month) ? month : new Date().toISOString().slice(0, 7);
+  const from = new Date(`${selected}-01T00:00:00.000Z`);
+  const to = new Date(from);
+  to.setUTCMonth(to.getUTCMonth() + 1);
+
   return {
-    fromSql: "to_date($1, 'YYYY-MM')",
-    toSql: "to_date($1, 'YYYY-MM') + INTERVAL '1 month'",
-    params: [selected],
+    from,
+    to,
   };
 }
 
@@ -145,8 +152,8 @@ export async function getAggregatedParkingData(bucket: AggregateBucket, month?: 
           s.usage,
           s.scraped_at
         FROM parking_snapshots s
-        WHERE s.scraped_at >= ${range.fromSql}
-          AND s.scraped_at < ${range.toSql}
+        WHERE s.scraped_at >= $1
+          AND s.scraped_at < $2
       )
       SELECT
         l.location_id AS "locationId",
@@ -164,7 +171,7 @@ export async function getAggregatedParkingData(bucket: AggregateBucket, month?: 
       GROUP BY l.location_id, l.name, l.lat, l.lng
       ORDER BY l.name ASC
     `,
-    range.params,
+    [range.from, range.to],
   );
 
   return result.rows;

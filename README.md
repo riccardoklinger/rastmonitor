@@ -20,7 +20,7 @@ Webanwendung zur Visualisierung von LKW-Stellplätzen in Deutschland.
 ## Konfiguration
 
 ```bash
-DATABASE_URL=******localhost:5432/rastmonitor
+DATABASE_URL=postgresql://localhost:5432/rastmonitor
 SCRAPE_URL=https://example.com/parking-data.json
 SCRAPE_INTERVAL_MINUTES=10
 SCRAPE_TIMEOUT_MS=15000
@@ -42,4 +42,3 @@ npm run dev
 - `POST /api/scrape` – manuellen Scrape auslösen
 - `GET /api/data/live` – letzte Messung pro Stellplatz
 - `GET /api/data/aggregates?bucket=last_month|last_3_months|calendar_month&month=YYYY-MM`
-

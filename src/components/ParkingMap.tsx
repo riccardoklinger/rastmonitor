@@ -30,6 +30,7 @@ type AggregatePoint = {
 
 type Mode = "live" | "last_month" | "last_3_months" | "calendar_month";
 type Metric = "mean" | "max" | "min";
+const LIVE_REFRESH_INTERVAL_MS = 60_000;
 
 const MAP_BOUNDS: LngLatBoundsLike = [
   [5.5, 47.0],
@@ -47,6 +48,7 @@ export function ParkingMap() {
   const [selected, setSelected] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
 
@@ -148,7 +150,7 @@ export function ParkingMap() {
     };
 
     void loadData();
-    const timer = mode === "live" ? setInterval(() => void loadData(), 60000) : null;
+    const timer = mode === "live" ? setInterval(() => void loadData(), LIVE_REFRESH_INTERVAL_MS) : null;
 
     return () => {
       cancelled = true;
@@ -252,14 +254,25 @@ export function ParkingMap() {
           type="button"
           className="rounded bg-zinc-900 px-3 py-1 text-sm text-white"
           onClick={async () => {
-            await fetch("/api/scrape", { method: "POST" });
-            setRefreshTick((current) => current + 1);
+            setError(null);
+            setMessage(null);
+            try {
+              const response = await fetch("/api/scrape", { method: "POST" });
+              if (!response.ok) {
+                throw new Error("Scrape failed");
+              }
+              setMessage("Scrape completed.");
+              setRefreshTick((current) => current + 1);
+            } catch (e) {
+              setError(e instanceof Error ? e.message : "Scrape failed");
+            }
           }}
         >
           Trigger scrape
         </button>
 
         {loading ? <span className="text-sm text-zinc-500">Loading...</span> : null}
+        {message ? <span className="text-sm text-green-700">{message}</span> : null}
         {error ? <span className="text-sm text-red-600">{error}</span> : null}
       </header>
 

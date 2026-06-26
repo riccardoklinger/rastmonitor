@@ -1,10 +1,16 @@
 import { scrapeAndStore } from "@/backend/scraper";
 
-const globalForScheduler = globalThis as unknown as { schedulerStarted?: boolean };
+const DEFAULT_SCRAPE_INTERVAL_MINUTES = 10;
+
+const globalForScheduler = globalThis as unknown as {
+  schedulerStarted?: boolean;
+  schedulerInterval?: NodeJS.Timeout;
+};
 
 function getIntervalMs() {
-  const configured = Number(process.env.SCRAPE_INTERVAL_MINUTES ?? 10);
-  const minutes = Number.isFinite(configured) ? configured : 10;
+  const configured = Number(process.env.SCRAPE_INTERVAL_MINUTES ?? DEFAULT_SCRAPE_INTERVAL_MINUTES);
+  const minutes = Number.isFinite(configured) ? configured : DEFAULT_SCRAPE_INTERVAL_MINUTES;
+  // Product requirement: scrape interval must stay configurable but within 5-15 minutes.
   const bounded = Math.min(15, Math.max(5, minutes));
   return bounded * 60 * 1000;
 }
@@ -30,7 +36,15 @@ export function startScraperScheduler() {
     void execute();
   }
 
-  setInterval(() => {
+  globalForScheduler.schedulerInterval = setInterval(() => {
     void execute();
   }, intervalMs);
+}
+
+export function stopScraperScheduler() {
+  if (globalForScheduler.schedulerInterval) {
+    clearInterval(globalForScheduler.schedulerInterval);
+    globalForScheduler.schedulerInterval = undefined;
+  }
+  globalForScheduler.schedulerStarted = false;
 }

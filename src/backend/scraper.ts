@@ -2,6 +2,7 @@ import { initSchema, upsertLocationsAndSnapshots } from "@/backend/db";
 import type { ScrapedParkingPoint } from "@/backend/types";
 
 const scrapeUrl = process.env.SCRAPE_URL;
+const DEFAULT_SCRAPE_TIMEOUT_MS = 15000;
 
 function parseNumber(value: unknown): number | null {
   if (value === null || value === undefined || value === "") return null;
@@ -80,8 +81,9 @@ export async function scrapeAndStore() {
     throw new Error("SCRAPE_URL is required");
   }
 
-  const timeoutMs = Number(process.env.SCRAPE_TIMEOUT_MS ?? 15000);
-  const signal = AbortSignal.timeout(Number.isFinite(timeoutMs) ? timeoutMs : 15000);
+  const configuredTimeoutMs = Number(process.env.SCRAPE_TIMEOUT_MS);
+  const timeoutMs = Number.isFinite(configuredTimeoutMs) ? configuredTimeoutMs : DEFAULT_SCRAPE_TIMEOUT_MS;
+  const signal = AbortSignal.timeout(timeoutMs);
 
   const response = await fetch(scrapeUrl, {
     cache: "no-store",
