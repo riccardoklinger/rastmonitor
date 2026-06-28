@@ -21,9 +21,9 @@ export async function GET(req: NextRequest) {
          ps.total_spaces,
          ST_X(ps.location) AS longitude,
          ST_Y(ps.location) AS latitude,
-         d.max_pct         AS occupancy_pct,
-         d.mean_pct,
-         d.min_pct,
+         d.max_occ         AS occupancy_pct,
+         d.mean_occ        AS mean_pct,
+         d.min_occ         AS min_pct,
          d.is_synthetic
        FROM parking_sites ps
        LEFT JOIN parking_status_daily d
