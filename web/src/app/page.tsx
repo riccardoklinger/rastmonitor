@@ -29,6 +29,8 @@ export default function Home() {
     setDailyMetric(m)
   }, [])
 
+  const METRIC_LABELS = { max: 'Maximum', mean: 'Mittelwert', median: 'Median', min: 'Minimum' }
+
   const dataUrl =
     mode === 'dailymax' && dailyDate
       ? `/api/sites/daily-max?date=${dailyDate}&metric=${dailyMetric}`
@@ -36,11 +38,16 @@ export default function Home() {
       ? `/api/sites/snapshot?at=${encodeURIComponent(snapshotTime.toISOString())}`
       : '/api/sites'
 
+  const metricLabel =
+    mode === 'dailymax' ? METRIC_LABELS[dailyMetric] :
+    mode === 'history'  ? 'Auslastung (historisch)' :
+    'Auslastung (live)'
+
   return (
     <main className="relative w-screen h-screen overflow-hidden">
       {/* Map fills everything except the bottom control bar */}
       <div className="absolute inset-0 bottom-14">
-        <Map onSiteSelect={setSelectedSite} dataUrl={dataUrl} />
+        <Map onSiteSelect={setSelectedSite} dataUrl={dataUrl} metricLabel={metricLabel} />
       </div>
 
       {selectedSite && (

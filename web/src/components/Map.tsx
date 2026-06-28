@@ -31,16 +31,61 @@ interface MapProps {
   onSiteSelect: (site: SiteProperties) => void
   /** URL to fetch GeoJSON from. Defaults to /api/sites (live). */
   dataUrl?: string
+  /** Label for the occupancy value shown in the popup (e.g. "Maximum", "Mittelwert") */
+  metricLabel?: string
 }
 
 // Self-hosted by default (/api/map-style → Martin tile server via Next.js proxy).
 // For local dev without tiles, set NEXT_PUBLIC_MAP_STYLE to a remote style URL.
 const MAP_STYLE = process.env.NEXT_PUBLIC_MAP_STYLE ?? '/api/map-style'
 
-export default function Map({ onSiteSelect, dataUrl = '/api/sites' }: MapProps) {
+function formatTs(iso: string | null): string {
+  if (!iso) return '–'
+  const d = new Date(iso)
+  // If it looks like a plain date (YYYY-MM-DD), format as date only
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+    return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  }
+  return d.toLocaleString('de-DE', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
+}
+
+function buildPopupHtml(props: SiteProperties, metricLabel: string): string {
+  const pct = props.occupancy_pct
+  const color =
+    pct == null  ? '#9ca3af' :
+    pct > 100    ? '#7f1d1d' :
+    pct >= 95    ? '#ef4444' :
+    pct >= 80    ? '#f97316' :
+    pct >= 50    ? '#eab308' :
+                   '#22c55e'
+  const pctStr = pct != null ? `${Number(pct).toFixed(1)} %` : 'Keine Daten'
+  const synth = props.is_synthetic ? '<span style="font-size:10px;color:#6b7280;font-style:italic"> · synthetisch</span>' : ''
+
+  return `
+    <div style="font-family:sans-serif;min-width:180px">
+      <div style="font-weight:700;font-size:13px;margin-bottom:6px;color:#111">${props.name}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${color};flex-shrink:0"></span>
+        <span style="font-size:13px;font-weight:600;color:#111">${pctStr}</span>
+        <span style="font-size:11px;color:#6b7280">${metricLabel}</span>
+      </div>
+      <div style="font-size:11px;color:#6b7280">${formatTs(props.fetched_at)}${synth}</div>
+      <div style="font-size:11px;color:#6b7280">${props.total_spaces} Stellplätze gesamt</div>
+    </div>
+  `
+}
+
+export default function Map({ onSiteSelect, dataUrl = '/api/sites', metricLabel = 'Auslastung' }: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
   const dataUrlRef = useRef(dataUrl)
+  const metricLabelRef = useRef(metricLabel)
+
+  // Keep refs in sync
+  useEffect(() => { metricLabelRef.current = metricLabel }, [metricLabel])
 
   // Keep ref in sync so the interval closure always uses latest URL
   useEffect(() => {
@@ -88,11 +133,18 @@ export default function Map({ onSiteSelect, dataUrl = '/api/sites' }: MapProps) 
         map.getCanvas().style.cursor = ''
       })
 
-      // Click → select site
+      // Click → popup + side panel
       map.on('click', 'parking-circles', (e) => {
         const feature = e.features?.[0]
         if (!feature) return
-        onSiteSelect(feature.properties as SiteProperties)
+        const props = feature.properties as SiteProperties
+
+        new maplibregl.Popup({ closeButton: true, maxWidth: '260px', offset: 12 })
+          .setLngLat(e.lngLat)
+          .setHTML(buildPopupHtml(props, metricLabelRef.current))
+          .addTo(map)
+
+        onSiteSelect(props)
       })
     })
 
