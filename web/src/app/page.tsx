@@ -68,7 +68,7 @@ export default function Home() {
           href="/about"
           className="px-2 py-1 bg-white/90 rounded shadow text-gray-600 hover:text-gray-900 hover:bg-white transition"
         >
-          ℹ️ Über
+          Über
         </a>
         <a
           href="/impressum"
