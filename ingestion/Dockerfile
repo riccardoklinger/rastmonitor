@@ -13,11 +13,12 @@ COPY . .
 
 # Install crontab:
 # - static fetch once daily at 03:00
-# - dynamic fetch every 15 minutes
+# - dynamic fetch every 2 minutes (temp, revert to 15)
 RUN echo "0 3 * * * /usr/local/bin/python3 /app/fetch_static.py >> /var/log/cron.log 2>&1\n\
 */2 * * * * /usr/local/bin/python3 /app/fetch_dynamic.py >> /var/log/cron.log 2>&1\n\
 0 2 * * * /usr/local/bin/python3 /app/aggregate_daily.py >> /var/log/cron.log 2>&1\n\
 30 2 * * * /usr/local/bin/python3 /app/prune_raw.py >> /var/log/cron.log 2>&1" \
     | crontab -
 
-CMD ["cron", "-f"]
+RUN chmod +x /app/entrypoint.sh
+CMD ["/app/entrypoint.sh"]
