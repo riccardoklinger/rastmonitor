@@ -4,7 +4,6 @@ import { useEffect, useRef } from 'react'
 import maplibregl from 'maplibre-gl'
 
 // Colour scale by occupancy_pct
-// Colour scale by occupancy_pct.
 // coalesce maps null/missing → -1, which falls into the grey bucket below 0.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const OCCUPANCY_COLOR: any = [
@@ -30,16 +29,25 @@ export interface SiteProperties {
 
 interface MapProps {
   onSiteSelect: (site: SiteProperties) => void
+  /** URL to fetch GeoJSON from. Defaults to /api/sites (live). */
+  dataUrl?: string
 }
 
 // Self-hosted by default (/api/map-style → Martin tile server via Next.js proxy).
-// For local dev without tiles, set NEXT_PUBLIC_MAP_STYLE to a remote style URL, e.g.:
-//   NEXT_PUBLIC_MAP_STYLE=https://tiles.openfreemap.org/styles/liberty
+// For local dev without tiles, set NEXT_PUBLIC_MAP_STYLE to a remote style URL.
 const MAP_STYLE = process.env.NEXT_PUBLIC_MAP_STYLE ?? '/api/map-style'
 
-export default function Map({ onSiteSelect }: MapProps) {
+export default function Map({ onSiteSelect, dataUrl = '/api/sites' }: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
+  const dataUrlRef = useRef(dataUrl)
+
+  // Keep ref in sync so the interval closure always uses latest URL
+  useEffect(() => {
+    dataUrlRef.current = dataUrl
+    const source = mapRef.current?.getSource('parking') as maplibregl.GeoJSONSource | undefined
+    source?.setData(dataUrl)
+  }, [dataUrl])
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
@@ -56,7 +64,7 @@ export default function Map({ onSiteSelect }: MapProps) {
     map.on('load', () => {
       map.addSource('parking', {
         type: 'geojson',
-        data: '/api/sites',
+        data: dataUrlRef.current,
       })
 
       map.addLayer({
@@ -90,8 +98,9 @@ export default function Map({ onSiteSelect }: MapProps) {
 
     mapRef.current = map
 
-    // Refresh live data every 5 minutes
+    // Refresh live data every 5 minutes (only when showing live data)
     const interval = setInterval(() => {
+      if (dataUrlRef.current !== '/api/sites') return  // skip in history mode
       const source = map.getSource('parking') as maplibregl.GeoJSONSource | undefined
       source?.setData('/api/sites')
     }, 5 * 60 * 1000)
