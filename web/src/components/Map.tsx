@@ -123,6 +123,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
       container: containerRef.current,
       style: MAP_STYLE,
       center: [10.4515, 51.1657], // Germany centre
+      customAttribution: 'Daten: <a href="https://www.toll-collect.de" target="_blank" rel="noopener">Toll Collect</a> via Mobilithek',
       zoom: 6,
     })
 
