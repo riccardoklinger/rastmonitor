@@ -124,6 +124,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
       style: MAP_STYLE,
       center: [10.4515, 51.1657], // Germany centre
       zoom: 6,
+      attributionControl: false,
     })
 
     map.addControl(new maplibregl.NavigationControl(), 'top-right')
