@@ -22,8 +22,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(EMPTY, { status: 400 })
   }
 
-  const metricParam = (req.nextUrl.searchParams.get('metric') ?? 'max') as Metric
-  const col = METRIC_COLUMN[metricParam] ?? METRIC_COLUMN.max
+  const metricParam = req.nextUrl.searchParams.get('metric') ?? 'max'
+  const col = Object.hasOwn(METRIC_COLUMN, metricParam)
+    ? METRIC_COLUMN[metricParam as Metric]
+    : METRIC_COLUMN.max
 
   try {
     const result = await pool.query(

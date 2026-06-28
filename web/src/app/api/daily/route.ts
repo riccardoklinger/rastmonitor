@@ -9,7 +9,7 @@ import pool from '@/lib/db'
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const datexId = searchParams.get('datex_id')
-  const days = Math.min(Number(searchParams.get('days') ?? 180), 180)
+  const days = Math.min(Math.max(1, Number(searchParams.get('days') ?? 180)), 180)
 
   if (!datexId) {
     return NextResponse.json({ error: 'datex_id is required' }, { status: 400 })
