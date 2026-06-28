@@ -66,6 +66,15 @@ function buildPopupHtml(props: SiteProperties, metricLabel: string): string {
   const pctStr = pct != null ? `${Number(pct).toFixed(1)} %` : 'Keine Daten'
   const synth = props.is_synthetic ? '<span style="font-size:10px;color:#6b7280;font-style:italic"> · synthetisch</span>' : ''
 
+  // vacant_spaces from feed, or estimate from occupancy_pct × total_spaces
+  const spacesStr = `${props.total_spaces} Stellplätze gesamt${
+    props.vacant_spaces != null
+      ? ` · ${props.vacant_spaces} frei`
+      : (pct != null && props.total_spaces)
+        ? ` · ~${Math.round(props.total_spaces * (1 - pct / 100))} frei`
+        : ''
+  }`
+
   return `
     <div style="font-family:sans-serif;min-width:180px">
       <div style="font-weight:700;font-size:13px;margin-bottom:6px;color:#111">${props.name}</div>
@@ -75,7 +84,7 @@ function buildPopupHtml(props: SiteProperties, metricLabel: string): string {
         <span style="font-size:11px;color:#6b7280">${metricLabel}</span>
       </div>
       <div style="font-size:11px;color:#6b7280">${formatTs(props.fetched_at)}${synth}</div>
-      <div style="font-size:11px;color:#6b7280">${props.total_spaces} Stellplätze gesamt${props.vacant_spaces != null ? ` · ${props.vacant_spaces} frei` : ''}</div>
+      <div style="font-size:11px;color:#6b7280">${spacesStr}</div>
     </div>
   `
 }
