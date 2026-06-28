@@ -19,7 +19,6 @@ export default function Home() {
 
   const handleTimeChange = useCallback((t: Date | null) => {
     setSnapshotTime(t)
-    if (t === null) setMode('live')
   }, [])
 
   const handleDayChange = useCallback((d: string) => setDailyDate(d), [])
