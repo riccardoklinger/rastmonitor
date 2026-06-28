@@ -76,7 +76,7 @@ export default function Home() {
           href="https://github.com/sponsors/riccardoklinger"
           target="_blank"
           rel="noopener noreferrer"
-          className="px-2 py-1 bg-pink-500/90 rounded shadow text-white hover:bg-pink-600 transition"
+          className="px-2 py-1 bg-white/90 rounded shadow text-gray-600 hover:text-gray-900 hover:bg-white transition"
         >
           ♥ Sponsor
         </a>
