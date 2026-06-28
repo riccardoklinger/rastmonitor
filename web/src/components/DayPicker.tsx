@@ -85,12 +85,6 @@ export default function DayPicker({ onChange }: DayPickerProps) {
         onChange={handleDateInput}
         className="flex-shrink-0 text-sm border border-amber-300 rounded px-2 py-1 bg-white text-gray-700 cursor-pointer"
       />
-
-      <div className="flex-shrink-0 text-xs text-amber-700 min-w-[6rem] text-right">
-        {new Date(selectedDate).toLocaleDateString('de-DE', {
-          weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric',
-        })}
-      </div>
     </div>
   )
 }
