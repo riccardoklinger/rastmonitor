@@ -48,7 +48,7 @@ services:
     build:
       context: ./web
       args:
-        NEXT_PUBLIC_MAP_STYLE: ${NEXT_PUBLIC_MAP_STYLE:-https://tiles.openfreemap.org/styles/liberty}
+        NEXT_PUBLIC_MAP_STYLE: ${NEXT_PUBLIC_MAP_STYLE:-https://sgx.geodatenzentrum.de/gdz_basemapde_vektor/styles/bm_web_col.json}
     restart: unless-stopped
     depends_on:
       db:
@@ -58,7 +58,7 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       MARTIN_URL: http://martin:3000
-      NEXT_PUBLIC_MAP_STYLE: ${NEXT_PUBLIC_MAP_STYLE:-https://tiles.openfreemap.org/styles/liberty}
+      NEXT_PUBLIC_MAP_STYLE: ${NEXT_PUBLIC_MAP_STYLE:-https://sgx.geodatenzentrum.de/gdz_basemapde_vektor/styles/bm_web_col.json}
     ports:
       - "127.0.0.1:3001:3000"
 
