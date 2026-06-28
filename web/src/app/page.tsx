@@ -9,6 +9,8 @@ const SitePanel = dynamic(() => import('@/components/SitePanel'), { ssr: false }
 const TimeSlider = dynamic(() => import('@/components/TimeSlider'), { ssr: false })
 const DayPicker = dynamic(() => import('@/components/DayPicker'), { ssr: false })
 
+import type { DailyMetric } from '@/components/DayPicker'
+
 type ViewMode = 'live' | 'history' | 'dailymax'
 
 export default function Home() {
@@ -16,16 +18,20 @@ export default function Home() {
   const [mode, setMode] = useState<ViewMode>('live')
   const [snapshotTime, setSnapshotTime] = useState<Date | null>(null)
   const [dailyDate, setDailyDate] = useState<string>('')
+  const [dailyMetric, setDailyMetric] = useState<DailyMetric>('max')
 
   const handleTimeChange = useCallback((t: Date | null) => {
     setSnapshotTime(t)
   }, [])
 
-  const handleDayChange = useCallback((d: string) => setDailyDate(d), [])
+  const handleDayChange = useCallback((d: string, m: DailyMetric) => {
+    setDailyDate(d)
+    setDailyMetric(m)
+  }, [])
 
   const dataUrl =
     mode === 'dailymax' && dailyDate
-      ? `/api/sites/daily-max?date=${dailyDate}`
+      ? `/api/sites/daily-max?date=${dailyDate}&metric=${dailyMetric}`
       : mode === 'history' && snapshotTime
       ? `/api/sites/snapshot?at=${encodeURIComponent(snapshotTime.toISOString())}`
       : '/api/sites'
@@ -70,7 +76,7 @@ export default function Home() {
         {([
           ['live',     '● Live'],
           ['history',  '⏱ 72h'],
-          ['dailymax', '📅 Tagesmax'],
+          ['dailymax', '📅 90T'],
         ] as [ViewMode, string][]).map(([m, label]) => (
           <button
             key={m}
@@ -95,7 +101,9 @@ export default function Home() {
       {/* Legend */}
       <div className="absolute bottom-16 left-4 bg-white rounded-lg shadow-md p-3 text-xs space-y-1 z-10">
         <p className="font-semibold text-gray-700 mb-1">
-          {mode === 'dailymax' ? 'Tagesmax-Auslastung' : 'Auslastung'}
+          {mode === 'dailymax'
+            ? { max: 'Tagesmaximum', mean: 'Tagesmittel', median: 'Tagesmedian', min: 'Tagesminimum' }[dailyMetric]
+            : 'Auslastung'}
         </p>
         {[
           ['#22c55e', '< 50 %'],

@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import pool from '@/lib/db'
 
+type Metric = 'max' | 'mean' | 'median' | 'min'
+
+const METRIC_COLUMN: Record<Metric, string> = {
+  max:    'max_occ',
+  mean:   'mean_occ',
+  median: 'median_occ',
+  min:    'min_occ',
+}
+
 /**
- * GET /api/sites/daily-max?date=YYYY-MM-DD
- * Returns GeoJSON with each site's daily max occupancy from parking_status_daily.
+ * GET /api/sites/daily-max?date=YYYY-MM-DD&metric=max|mean|median|min
+ * Returns GeoJSON with each site's chosen daily metric from parking_status_daily.
  */
 export async function GET(req: NextRequest) {
   const EMPTY: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] }
@@ -13,17 +22,19 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(EMPTY, { status: 400 })
   }
 
+  const metricParam = (req.nextUrl.searchParams.get('metric') ?? 'max') as Metric
+  const col = METRIC_COLUMN[metricParam] ?? METRIC_COLUMN.max
+
   try {
     const result = await pool.query(
       `SELECT
          ps.datex_id,
          ps.name,
          ps.total_spaces,
-         ST_X(ps.location) AS longitude,
-         ST_Y(ps.location) AS latitude,
-         d.max_occ         AS occupancy_pct,
-         d.mean_occ        AS mean_pct,
-         d.min_occ         AS min_pct,
+         ST_X(ps.location)  AS longitude,
+         ST_Y(ps.location)  AS latitude,
+         d.${col}           AS occupancy_pct,
+         d.max_occ, d.mean_occ, d.median_occ, d.min_occ,
          d.is_synthetic
        FROM parking_sites ps
        LEFT JOIN parking_status_daily d
@@ -38,16 +49,19 @@ export async function GET(req: NextRequest) {
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [Number(r.longitude), Number(r.latitude)] },
         properties: {
-          datex_id: r.datex_id,
-          name: r.name,
+          datex_id:     r.datex_id,
+          name:         r.name,
           total_spaces: r.total_spaces,
           occupancy_pct: r.occupancy_pct !== null ? Number(r.occupancy_pct) : null,
-          mean_pct: r.mean_pct !== null ? Number(r.mean_pct) : null,
-          min_pct: r.min_pct !== null ? Number(r.min_pct) : null,
-          site_status: null,
+          max_occ:      r.max_occ    !== null ? Number(r.max_occ)    : null,
+          mean_occ:     r.mean_occ   !== null ? Number(r.mean_occ)   : null,
+          median_occ:   r.median_occ !== null ? Number(r.median_occ) : null,
+          min_occ:      r.min_occ    !== null ? Number(r.min_occ)    : null,
+          site_status:    null,
           opening_status: null,
-          fetched_at: dateParam,
+          fetched_at:   dateParam,
           is_synthetic: r.is_synthetic ?? false,
+          metric:       metricParam,
         },
       })),
     }
