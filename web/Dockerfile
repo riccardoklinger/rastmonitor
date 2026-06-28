@@ -9,6 +9,8 @@ RUN npm install --frozen-lockfile || npm install
 
 # Build
 FROM base AS builder
+ARG NEXT_PUBLIC_MAP_STYLE=https://tiles.openfreemap.org/styles/liberty
+ENV NEXT_PUBLIC_MAP_STYLE=$NEXT_PUBLIC_MAP_STYLE
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build

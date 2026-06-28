@@ -45,7 +45,10 @@ services:
       - ${CERT_P12}:/certs/client.p12:ro
 
   web:
-    build: ./web
+    build:
+      context: ./web
+      args:
+        NEXT_PUBLIC_MAP_STYLE: ${NEXT_PUBLIC_MAP_STYLE:-https://tiles.openfreemap.org/styles/liberty}
     restart: unless-stopped
     depends_on:
       db:
@@ -55,6 +58,7 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       MARTIN_URL: http://martin:3000
+      NEXT_PUBLIC_MAP_STYLE: ${NEXT_PUBLIC_MAP_STYLE:-https://tiles.openfreemap.org/styles/liberty}
     ports:
       - "127.0.0.1:3001:3000"
 
