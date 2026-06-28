@@ -119,7 +119,7 @@ export default function Home() {
         <div className="absolute bottom-0 left-0 right-0 h-14 bg-white/80 border-t border-gray-200 flex items-center justify-center z-10">
           <span className="flex items-center gap-2 text-sm text-green-600 font-medium">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            Live-Daten · Aktualisierung alle 5 Minuten
+            Live-Daten · Aktualisierung alle 15 Minuten
           </span>
         </div>
       )}
