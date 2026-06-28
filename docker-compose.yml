@@ -10,7 +10,7 @@ services:
       - db_data:/var/lib/postgresql/data
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
@@ -18,7 +18,7 @@ services:
       retries: 5
 
   martin:
-    image: ghcr.io/maplibre/martin:v0.14
+    image: maplibre/martin:latest
     restart: unless-stopped
     volumes:
       - ./tiles:/tiles:ro
@@ -56,7 +56,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       MARTIN_URL: http://martin:3000
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3001:3000"
 
 volumes:
   db_data:

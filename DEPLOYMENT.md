@@ -234,6 +234,34 @@ sudo systemctl enable docker
 
 ---
 
+## 11. Automated database backups
+
+Add a cron job on the **host** (not inside Docker) to dump the database daily.
+
+```bash
+mkdir -p /home/ricckli/backups/rastmonitor
+crontab -e
+```
+
+Add this line (04:00 daily, 30-day retention):
+
+```cron
+0 4 * * * docker exec rastmonitor-db-1 pg_dump -U rastmonitor -d rastmonitor -Fc | gzip > /home/ricckli/backups/rastmonitor/$(date +\%Y-\%m-\%d).dump.gz && find /home/ricckli/backups/rastmonitor/ -name "*.dump.gz" -mtime +30 -delete
+```
+
+**Restore from backup:**
+
+```bash
+gunzip -c /home/ricckli/backups/rastmonitor/2026-06-28.dump.gz | \
+  docker exec -i rastmonitor-db-1 pg_restore \
+  -U rastmonitor -d rastmonitor --no-owner --clean
+```
+
+> `init.sql` only runs on a **fresh empty volume**. If you ever recreate the volume,
+> restore from a backup — the schema + data won't come back from init.sql alone.
+
+---
+
 ## 10. Useful maintenance commands
 
 ```bash
