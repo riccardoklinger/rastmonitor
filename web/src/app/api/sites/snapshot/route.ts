@@ -27,7 +27,8 @@ export async function GET(req: NextRequest) {
          pst.site_status,
          pst.opening_status,
          pst.fetched_at,
-         pst.is_synthetic
+         pst.is_synthetic,
+         pst.vacant_spaces
        FROM parking_sites ps
        LEFT JOIN parking_status pst
          ON ps.datex_id = pst.datex_id
@@ -47,6 +48,7 @@ export async function GET(req: NextRequest) {
           datex_id: r.datex_id,
           name: r.name,
           total_spaces: r.total_spaces,
+          vacant_spaces: r.vacant_spaces !== null ? Number(r.vacant_spaces) : null,
           occupancy_pct: r.occupancy_pct !== null ? Number(r.occupancy_pct) : null,
           site_status: r.site_status,
           opening_status: r.opening_status,

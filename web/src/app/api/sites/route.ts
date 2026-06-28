@@ -19,6 +19,7 @@ export async function GET() {
         ST_X(ps.location)   AS longitude,
         ST_Y(ps.location)   AS latitude,
         psl.occupancy_pct,
+        psl.vacant_spaces,
         psl.site_status,
         psl.opening_status,
         psl.fetched_at
@@ -44,6 +45,7 @@ export async function GET() {
         datex_id: r.datex_id,
         name: r.name,
         total_spaces: r.total_spaces,
+        vacant_spaces: r.vacant_spaces !== null ? Number(r.vacant_spaces) : null,
         occupancy_pct: r.occupancy_pct !== null ? Number(r.occupancy_pct) : null,
         site_status: r.site_status,
         opening_status: r.opening_status,

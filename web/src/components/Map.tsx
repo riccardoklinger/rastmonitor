@@ -21,6 +21,8 @@ export interface SiteProperties {
   datex_id: string
   name: string
   total_spaces: number
+  vacant_spaces: number | null | undefined
+  is_synthetic: boolean
   occupancy_pct: number | null | undefined
   site_status: string | null
   opening_status: string | null
@@ -73,7 +75,7 @@ function buildPopupHtml(props: SiteProperties, metricLabel: string): string {
         <span style="font-size:11px;color:#6b7280">${metricLabel}</span>
       </div>
       <div style="font-size:11px;color:#6b7280">${formatTs(props.fetched_at)}${synth}</div>
-      <div style="font-size:11px;color:#6b7280">${props.total_spaces} Stellplätze gesamt</div>
+      <div style="font-size:11px;color:#6b7280">${props.total_spaces} Stellplätze gesamt${props.vacant_spaces != null ? ` · ${props.vacant_spaces} frei` : ''}</div>
     </div>
   `
 }
