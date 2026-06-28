@@ -31,8 +31,10 @@ export async function GET(req: NextRequest) {
        FROM parking_sites ps
        LEFT JOIN parking_status pst
          ON ps.datex_id = pst.datex_id
-        AND pst.fetched_at <= $1
-       ORDER BY ps.datex_id, pst.fetched_at DESC`,
+        AND pst.fetched_at BETWEEN $1::timestamptz - INTERVAL '30 minutes'
+                                AND $1::timestamptz + INTERVAL '30 minutes'
+       ORDER BY ps.datex_id,
+                ABS(EXTRACT(EPOCH FROM (pst.fetched_at - $1::timestamptz)))`,
       [at.toISOString()]
     )
 
