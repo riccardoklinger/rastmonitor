@@ -57,6 +57,14 @@ export default function Home() {
       {/* Footer links */}
       <div className="absolute top-3 right-16 z-10 flex gap-2 text-xs">
         <a
+          href="https://github.com/sponsors/riccardoklinger"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="px-2 py-1 bg-pink-500/90 rounded shadow text-white hover:bg-pink-600 transition"
+        >
+          ♥ Sponsor
+        </a>
+        <a
           href="/about"
           className="px-2 py-1 bg-white/90 rounded shadow text-gray-600 hover:text-gray-900 hover:bg-white transition"
         >
