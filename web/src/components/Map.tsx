@@ -21,7 +21,7 @@ export interface SiteProperties {
   datex_id: string
   name: string
   total_spaces: number
-  occupancy_pct: number | null
+  occupancy_pct: number | null | undefined
   site_status: string | null
   opening_status: string | null
   fetched_at: string | null

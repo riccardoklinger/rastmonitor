@@ -67,8 +67,8 @@ interface DailyRow {
   is_synthetic: boolean
 }
 
-function OccupancyBadge({ pct }: { pct: number | null }) {
-  if (pct === null) return <span className="text-gray-400 text-sm">No data</span>
+function OccupancyBadge({ pct }: { pct: number | null | undefined }) {
+  if (pct == null) return <span className="text-gray-400 text-sm">Keine Daten</span>
   const color =
     pct > 100 ? 'bg-red-900 text-white' :
     pct >= 95 ? 'bg-red-500 text-white' :
