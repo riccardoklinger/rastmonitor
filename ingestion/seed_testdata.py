@@ -70,7 +70,7 @@ def seed_raw(conn, site_ids: list[str]):
     sql = """
         INSERT INTO parking_status
             (datex_id, occupancy_pct, vacant_spaces, occupied_spaces,
-             occupancy_trend, opening_status, site_status, status_origin_time, is_synthetic)
+             occupancy_trend, opening_status, site_status, fetched_at, is_synthetic)
         VALUES %s
         ON CONFLICT DO NOTHING
     """
