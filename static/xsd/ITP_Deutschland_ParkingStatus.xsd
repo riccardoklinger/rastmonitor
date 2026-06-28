@@ -1,0 +1,1462 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+
+<!-- ITP Deutschland Profil / Parking Status Publication / Version 01-00-00 / 13.08.2015 -->
+
+<xs:schema elementFormDefault="qualified" attributeFormDefault="unqualified" xmlns:D2LogicalModel="http://datex2.eu/schema/2/2_0" version="2.3" targetNamespace="http://datex2.eu/schema/2/2_0" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:complexType name="_ExtensionType">
+    <xs:sequence>
+      <xs:any namespace="##any" processContents="lax" minOccurs="0" maxOccurs="unbounded" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="_GenericPublicationExtensionType">
+    <xs:sequence>
+      <xs:element name="parkingStatusPublication" type="D2LogicalModel:ParkingStatusPublication" minOccurs="0" />
+      <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="_MeasurementSiteRecordVersionedReference">
+    <xs:complexContent>
+      <xs:extension base="D2LogicalModel:VersionedReference">
+        <xs:attribute name="targetClass" use="required" fixed="MeasurementSiteRecord" />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="_ParkingAccessReference">
+    <xs:complexContent>
+      <xs:extension base="D2LogicalModel:Reference">
+        <xs:attribute name="targetClass" use="required" fixed="ParkingAccess" />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="_ParkingRecordStatusGroupIndexGroupOfParkingSpacesStatus">
+    <xs:sequence>
+      <xs:element name="groupOfParkingSpacesStatus" type="D2LogicalModel:GroupOfParkingSpacesStatus" minOccurs="1" maxOccurs="1" />
+    </xs:sequence>
+    <xs:attribute name="groupIndex" type="xs:int" use="required" />
+  </xs:complexType>
+  <xs:complexType name="_ParkingRecordStatusParkingSpaceIndexParkingSpaceStatus">
+    <xs:sequence>
+      <xs:element name="parkingSpaceStatus" type="D2LogicalModel:ParkingSpaceStatus" minOccurs="1" maxOccurs="1" />
+    </xs:sequence>
+    <xs:attribute name="parkingSpaceIndex" type="xs:int" use="required" />
+  </xs:complexType>
+  <xs:complexType name="_ParkingRecordVersionedReference">
+    <xs:complexContent>
+      <xs:extension base="D2LogicalModel:VersionedReference">
+        <xs:attribute name="targetClass" use="required" fixed="ParkingRecord" />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="_ParkingTableVersionedReference">
+    <xs:complexContent>
+      <xs:extension base="D2LogicalModel:VersionedReference">
+        <xs:attribute name="targetClass" use="required" fixed="ParkingTable" />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="_VehicleCharacteristicsExtensionType">
+    <xs:sequence>
+      <xs:element name="vehicleCharacteristicsExtended" type="D2LogicalModel:VehicleCharacteristicsExtended" minOccurs="0" />
+      <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:simpleType name="Boolean">
+    <xs:annotation>
+      <xs:documentation>Boolean has the value space required to support the mathematical concept of binary-valued logic: {true, false}. </xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:boolean" />
+  </xs:simpleType>
+  <xs:simpleType name="ComputationMethodEnum">
+    <xs:annotation>
+      <xs:documentation>Types of computational methods used in deriving data values for data sets.</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="arithmeticAverageOfSamplesBasedOnAFixedNumberOfSamples">
+        <xs:annotation>
+          <xs:documentation>Arithmetic average of sample values based on a fixed number of samples.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="arithmeticAverageOfSamplesInATimePeriod">
+        <xs:annotation>
+          <xs:documentation>Arithmetic average of sample values in a time period.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="harmonicAverageOfSamplesInATimePeriod">
+        <xs:annotation>
+          <xs:documentation>Harmonic average of sample values in a time period.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="medianOfSamplesInATimePeriod">
+        <xs:annotation>
+          <xs:documentation>Median of sample values taken over a time period.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="movingAverageOfSamples">
+        <xs:annotation>
+          <xs:documentation>Moving average of sample values.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="CountryEnum">
+    <xs:annotation>
+      <xs:documentation>List of countries.</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="at">
+        <xs:annotation>
+          <xs:documentation>Austria</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="be">
+        <xs:annotation>
+          <xs:documentation>Belgium</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="bg">
+        <xs:annotation>
+          <xs:documentation>Bulgaria</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="ch">
+        <xs:annotation>
+          <xs:documentation>Switzerland</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="cs">
+        <xs:annotation>
+          <xs:documentation>Serbia and Montenegro</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="cy">
+        <xs:annotation>
+          <xs:documentation>Cyprus</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="cz">
+        <xs:annotation>
+          <xs:documentation>Czech Republic</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="de">
+        <xs:annotation>
+          <xs:documentation>Germany</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="dk">
+        <xs:annotation>
+          <xs:documentation>Denmark</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="ee">
+        <xs:annotation>
+          <xs:documentation>Estonia</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="es">
+        <xs:annotation>
+          <xs:documentation>Spain</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="fi">
+        <xs:annotation>
+          <xs:documentation>Finland</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="fo">
+        <xs:annotation>
+          <xs:documentation>Faroe Islands</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="fr">
+        <xs:annotation>
+          <xs:documentation>France</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="gb">
+        <xs:annotation>
+          <xs:documentation>Great Britain</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="gg">
+        <xs:annotation>
+          <xs:documentation>Guernsey</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="gi">
+        <xs:annotation>
+          <xs:documentation>Gibraltar</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="gr">
+        <xs:annotation>
+          <xs:documentation>Greece</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="hr">
+        <xs:annotation>
+          <xs:documentation>Croatia</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="hu">
+        <xs:annotation>
+          <xs:documentation>Hungary</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="ie">
+        <xs:annotation>
+          <xs:documentation>Ireland</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="im">
+        <xs:annotation>
+          <xs:documentation>Isle Of Man</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="is">
+        <xs:annotation>
+          <xs:documentation>Iceland</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="it">
+        <xs:annotation>
+          <xs:documentation>Italy</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="je">
+        <xs:annotation>
+          <xs:documentation>Jersey</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="li">
+        <xs:annotation>
+          <xs:documentation>Lichtenstein</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="lt">
+        <xs:annotation>
+          <xs:documentation>Lithuania</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="lu">
+        <xs:annotation>
+          <xs:documentation>Luxembourg</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="lv">
+        <xs:annotation>
+          <xs:documentation>Latvia</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="ma">
+        <xs:annotation>
+          <xs:documentation>Morocco</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="mc">
+        <xs:annotation>
+          <xs:documentation>Monaco</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="mk">
+        <xs:annotation>
+          <xs:documentation>Macedonia</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="mt">
+        <xs:annotation>
+          <xs:documentation>Malta</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="nl">
+        <xs:annotation>
+          <xs:documentation>Netherlands</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="no">
+        <xs:annotation>
+          <xs:documentation>Norway</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="pl">
+        <xs:annotation>
+          <xs:documentation>Poland</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="pt">
+        <xs:annotation>
+          <xs:documentation>Portugal</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="ro">
+        <xs:annotation>
+          <xs:documentation>Romania</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="se">
+        <xs:annotation>
+          <xs:documentation>Sweden</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="si">
+        <xs:annotation>
+          <xs:documentation>Slovenia</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="sk">
+        <xs:annotation>
+          <xs:documentation>Slovakia</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="sm">
+        <xs:annotation>
+          <xs:documentation>San Marino</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="tr">
+        <xs:annotation>
+          <xs:documentation>Turkey</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="va">
+        <xs:annotation>
+          <xs:documentation>Vatican City State</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="other">
+        <xs:annotation>
+          <xs:documentation>Other than as defined in this enumeration.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:element name="d2LogicalModel" type="D2LogicalModel:D2LogicalModel" />
+  <xs:complexType name="D2LogicalModel">
+    <xs:annotation>
+      <xs:documentation>The DATEX II logical model comprising exchange, content payload and management sub-models.</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="exchange" type="D2LogicalModel:Exchange" />
+      <xs:element name="payloadPublication" type="D2LogicalModel:PayloadPublication" minOccurs="0" />
+      <xs:element name="d2LogicalModelExtension" type="D2LogicalModel:_ExtensionType" minOccurs="0" />
+    </xs:sequence>
+    <xs:attribute name="modelBaseVersion" use="required" fixed="2" />
+  </xs:complexType>
+  <xs:complexType name="DataValue" abstract="true">
+    <xs:annotation>
+      <xs:documentation>A data value of something that can be measured or calculated. Any provided meta-data values specified in the attributes override any specified generic characteristics such as defined for a specific measurement in the MeasurementSiteTable. </xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="dataError" type="D2LogicalModel:Boolean" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>Indication of whether the value is deemed to be erroneous by the supplier, (true = erroneous). If not present the data value is assumed to be ok. This may be used when automatic fault detection information relating to sensors is available.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="reasonForDataError" type="D2LogicalModel:MultilingualString" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>The reason why the value is deemed to be erroneous by the supplier.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="dataValueExtension" type="D2LogicalModel:_ExtensionType" minOccurs="0" />
+    </xs:sequence>
+    <xs:attribute name="accuracy" type="D2LogicalModel:Percentage" use="optional">
+      <xs:annotation>
+        <xs:documentation>The extent to which the value is expected to be free from error, measured as a percentage of the data value. 100% means fully accurate.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="computationalMethod" type="D2LogicalModel:ComputationMethodEnum" use="optional">
+      <xs:annotation>
+        <xs:documentation>Method of computation which has been used to compute this data value.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="numberOfIncompleteInputs" type="D2LogicalModel:NonNegativeInteger" use="optional">
+      <xs:annotation>
+        <xs:documentation>The number of inputs detected but not completed during the sampling or measurement period; e.g. vehicles detected entering but not exiting the detection zone.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="numberOfInputValuesUsed" type="D2LogicalModel:NonNegativeInteger" use="optional">
+      <xs:annotation>
+        <xs:documentation>The number of input values used in the sampling or measurment period to determine the data value.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="smoothingFactor" type="D2LogicalModel:Float" use="optional">
+      <xs:annotation>
+        <xs:documentation>Coefficient required when a moving average is computed to give specific weights to the former average and the new data. A typical formula is, F being the smoothing factor: New average = (old average) F + (new data) (1 - F).</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="standardDeviation" type="D2LogicalModel:Float" use="optional">
+      <xs:annotation>
+        <xs:documentation>The standard deviation of the sample of input values from which this value was derived, measured in the units of the data value. </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="supplierCalculatedDataQuality" type="D2LogicalModel:Percentage" use="optional">
+      <xs:annotation>
+        <xs:documentation>A measure of data quality assigned to the value by the supplier. 100% equates to ideal/perfect quality. The method of calculation is supplier specific and needs to be agreed between supplier and client.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+  <xs:simpleType name="DateTime">
+    <xs:annotation>
+      <xs:documentation>A combination of integer-valued year, month, day, hour, minute properties, a decimal-valued second property and a time zone property from which it is possible to determine the local time, the equivalent UTC time and the time zone offset from UTC.</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:dateTime" />
+  </xs:simpleType>
+  <xs:complexType name="Exchange">
+    <xs:annotation>
+      <xs:documentation>Details associated with the management of the exchange between the supplier and the client.</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="keepAlive" type="D2LogicalModel:Boolean" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>Indicator that this exchange is due to "keep alive" functionality.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="response" type="D2LogicalModel:ResponseEnum" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>The type of the response that the supplier is returning to the requesting client.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="subscriptionReference" type="D2LogicalModel:String" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>Unique identifier of the client's subscription with the supplier.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="supplierIdentification" type="D2LogicalModel:InternationalIdentifier" />
+      <xs:element name="exchangeExtension" type="D2LogicalModel:_ExtensionType" minOccurs="0" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:simpleType name="Float">
+    <xs:annotation>
+      <xs:documentation>A floating point number whose value space consists of the values m × 2^e, where m is an integer whose absolute value is less than 2^24, and e is an integer between -149 and 104, inclusive.</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:float" />
+  </xs:simpleType>
+  <xs:complexType name="GenericPublication">
+    <xs:annotation>
+      <xs:documentation>A publication used to make level B extensions at the publication level.</xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="D2LogicalModel:PayloadPublication">
+        <xs:sequence>
+          <xs:element name="genericPublicationName" type="D2LogicalModel:String" minOccurs="1" maxOccurs="1">
+            <xs:annotation>
+              <xs:documentation>The name of the generic publication.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="genericPublicationExtension" type="D2LogicalModel:_GenericPublicationExtensionType" minOccurs="0" />
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="GroupOfParkingSitesStatus">
+    <xs:annotation>
+      <xs:documentation>Dynamic status information for the static object 'GroupOfParkingSites'.</xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="D2LogicalModel:ParkingRecordStatus">
+        <xs:sequence>
+          <xs:element name="groupOfParkingSitesStatus" type="D2LogicalModel:GroupOfParkingSitesStatusEnum" minOccurs="0" maxOccurs="1">
+            <xs:annotation>
+              <xs:documentation>The status of the group of parking sites (available spaces or not).</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="groupOfParkingSitesStatusExtension" type="D2LogicalModel:_ExtensionType" minOccurs="0" />
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:simpleType name="GroupOfParkingSitesStatusEnum">
+    <xs:annotation>
+      <xs:documentation>The status of the group of parking sites (available spaces or not).</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="allParkingsFull">
+        <xs:annotation>
+          <xs:documentation>All parkings within the group are full.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="multiStoreyParkingsFull">
+        <xs:annotation>
+          <xs:documentation>All multi storey parkings within the group are full.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="noMoreParkingSpacesAvailable">
+        <xs:annotation>
+          <xs:documentation>No more parking spaces available within the group.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="enoughSpacesAvailable">
+        <xs:annotation>
+          <xs:documentation>Enough spaces available within the group.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="unknown">
+        <xs:annotation>
+          <xs:documentation>The status of the group of parking sites is unknown.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="other">
+        <xs:annotation>
+          <xs:documentation>Other.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:complexType name="GroupOfParkingSpacesStatus">
+    <xs:annotation>
+      <xs:documentation>The status of the assigned parking spaces in the specified parking site, i.e. the status of those spaces assigned for particular types of person or vehicle and/or for specific duration types (e.g. short stay).</xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="D2LogicalModel:ParkingOccupancy">
+        <xs:sequence>
+          <xs:element name="groupDeclarationValidNow" type="D2LogicalModel:Boolean" minOccurs="0" maxOccurs="1">
+            <xs:annotation>
+              <xs:documentation>Override validity of AssignedParkingSpaces: True = Parking space declaration is valid now; False = Parking space declaration is invalid now; Omitted = Static validity information is significant (if static validity is omitted too, declaration is valid).</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="groupOfParkingSpacesClosed" type="D2LogicalModel:Boolean" minOccurs="0" maxOccurs="1">
+            <xs:annotation>
+              <xs:documentation>True: The group of parking spaces is closed / not accessible. False or omitted: The group of parking spaces is accessible. This is no statement about its occupation.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="groupOfParkingSpacesStatusExtension" type="D2LogicalModel:_ExtensionType" minOccurs="0" />
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:simpleType name="Integer">
+    <xs:annotation>
+      <xs:documentation>An integer number whose value space is the set {-2147483648, -2147483647, -2147483646, ..., -2, -1, 0, 1, 2, ..., 2147483645, 2147483646, 2147483647}.</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:integer" />
+  </xs:simpleType>
+  <xs:complexType name="InternationalIdentifier">
+    <xs:annotation>
+      <xs:documentation>An identifier/name whose range is specific to the particular country.</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="country" type="D2LogicalModel:CountryEnum" minOccurs="1" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>ISO 3166-1 two character country code.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="nationalIdentifier" type="D2LogicalModel:String" minOccurs="1" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>Identifier or name unique within the specified country.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="internationalIdentifierExtension" type="D2LogicalModel:_ExtensionType" minOccurs="0" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:simpleType name="Language">
+    <xs:annotation>
+      <xs:documentation>A language datatype, identifies a specified language by an ISO 639-1 2-alpha / ISO 639-2 3-alpha code.</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:language" />
+  </xs:simpleType>
+  <xs:simpleType name="LoadType2Enum">
+    <xs:annotation>
+      <xs:documentation>Loads that are currently not supported in loadType.</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="refrigeratedGoods">
+        <xs:annotation>
+          <xs:documentation>Refrigerated goods.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="LoadTypeEnum">
+    <xs:annotation>
+      <xs:documentation>Types of load carried by a vehicle.</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="hazardousMaterials">
+        <xs:annotation>
+          <xs:documentation>Materials classed as being of a hazardous nature.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:complexType name="MultilingualString">
+    <xs:sequence>
+      <xs:element name="values">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="value" type="D2LogicalModel:MultilingualStringValue" maxOccurs="unbounded" />
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="MultilingualStringValue">
+    <xs:simpleContent>
+      <xs:extension base="D2LogicalModel:MultilingualStringValueType">
+        <xs:attribute name="lang" type="xs:language" />
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+  <xs:simpleType name="MultilingualStringValueType">
+    <xs:restriction base="xs:string">
+      <xs:maxLength value="1024" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="NonNegativeInteger">
+    <xs:annotation>
+      <xs:documentation>An integer number whose value space is the set {0, 1, 2, ..., 2147483645, 2147483646, 2147483647}.</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:nonNegativeInteger" />
+  </xs:simpleType>
+  <xs:complexType name="OccupancyChangeValue">
+    <xs:annotation>
+      <xs:documentation>A measured or calculated value of change of occupied parking spaces expressed as integer.</xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="D2LogicalModel:DataValue">
+        <xs:sequence>
+          <xs:element name="occupancyChange" type="D2LogicalModel:Integer" minOccurs="1" maxOccurs="1">
+            <xs:annotation>
+              <xs:documentation>A measured or calculated absolut change of occupied parking spaces within a specified time expressed as integer.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="occupancyChangeValueExtension" type="D2LogicalModel:_ExtensionType" minOccurs="0" />
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:simpleType name="OpeningStatusEnum">
+    <xs:annotation>
+      <xs:documentation>The opening status of some entity (e.g. parking site, service facility, access,...)</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="open">
+        <xs:annotation>
+          <xs:documentation>Open resp. available.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="closed">
+        <xs:annotation>
+          <xs:documentation>Closed, usually because of the regular opening times.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="closedAbnormal">
+        <xs:annotation>
+          <xs:documentation>Closed because of some scheduled or unscheduled event, like holiday, maintenance, construction works or any kind of problems. It is possible that the closure will last for some time.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="statusUnknown">
+        <xs:annotation>
+          <xs:documentation>The opening status is unknown.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="other">
+        <xs:annotation>
+          <xs:documentation>Other.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:complexType name="OverallPeriod">
+    <xs:annotation>
+      <xs:documentation>A continuous or discontinuous period of validity defined by overall bounding start and end times and the possible intersection of valid periods (potentially recurring) with the complement of exception periods (also potentially recurring).</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="overallStartTime" type="D2LogicalModel:DateTime" minOccurs="1" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>Start of bounding period of validity defined by date and time.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="overallEndTime" type="D2LogicalModel:DateTime" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>End of bounding period of validity defined by date and time.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="overallPeriodExtension" type="D2LogicalModel:_ExtensionType" minOccurs="0" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="ParkingOccupancy">
+    <xs:annotation>
+      <xs:documentation>Parking capacity information for the parking site as well as for AssignedParkingSpaces.</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="parkingNumberOfSpacesOverride" type="D2LogicalModel:NonNegativeInteger" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>Possibility to override the static value 'parkingNumberOfSpaces'.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="parkingNumberOfVacantSpaces" type="D2LogicalModel:NonNegativeInteger" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>The total number of currently vacant parking spaces available in the specified parking site, group of parking sites or group of parking spaces.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="parkingNumberOfVacantSpacesLowerThan" type="D2LogicalModel:NonNegativeInteger" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>The number of vacant parking spaces is lower than the given value (example: Less than 10 spaces are free).</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="parkingNumberOfVacantSpacesHigherThan" type="D2LogicalModel:NonNegativeInteger" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>The number of vacant parking spaces is higher than the given value (example: More than 10 spaces are free).</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="parkingNumberOfVacantSpacesGraded" type="D2LogicalModel:ParkingVacantSpacesEnum" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>Number of vacant spaces by grading (enumeration).</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="parkingNumberOfOccupiedSpaces" type="D2LogicalModel:NonNegativeInteger" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>The number of currently occupied spaces in the specified parking site, group of parking sites or assigned parking.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="parkingNumberOfVehicles" type="D2LogicalModel:NonNegativeInteger" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>Number of vehicles (of specified type) on the parking site, the group of parking sites or the group of parking spaces. Parking too narrow or too wide may effect differences to the 'occupiedSpaces' value. Should not include petrol station traffic.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="parkingOccupancy" type="D2LogicalModel:Percentage" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>The percentage value of parking spaces occupied in the specified parking site, group of parking sites or assigned parking.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="parkingOccupancyGraded" type="D2LogicalModel:ParkingOccupancyEnum" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>Occupied parking spaces by a percentage-grading (enumeration).</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="parkingOccupancyTrend" type="D2LogicalModel:ParkingOccupancyTrendEnum" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>The trend of the occupancy of the parking spaces in the specified parking site, group of parking sites or assigned parking.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="parkingNotAllowed" type="D2LogicalModel:Boolean" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>In case of 'true', parking is not allowed (e.g. abnormal closure).</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="vehicleCountAndRate" type="D2LogicalModel:VehicleCountAndRate" minOccurs="0" maxOccurs="unbounded" />
+      <xs:element name="parkingOccupancyExtension" type="D2LogicalModel:_ExtensionType" minOccurs="0" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:simpleType name="ParkingOccupancyEnum">
+    <xs:annotation>
+      <xs:documentation>Parking Occupancy enum.</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="expectCarParkToBeFull">
+        <xs:annotation>
+          <xs:documentation>Expect car park to be full.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="percentage10">
+        <xs:annotation>
+          <xs:documentation>10% full.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="percentage20">
+        <xs:annotation>
+          <xs:documentation>20% full.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="percentage30">
+        <xs:annotation>
+          <xs:documentation>30% full.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="percentage40">
+        <xs:annotation>
+          <xs:documentation>40% full.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="percentage50">
+        <xs:annotation>
+          <xs:documentation>50% full.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="percentage60">
+        <xs:annotation>
+          <xs:documentation>60% full.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="percentage70">
+        <xs:annotation>
+          <xs:documentation>70% full.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="percentage80">
+        <xs:annotation>
+          <xs:documentation>80% full.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="percentage90">
+        <xs:annotation>
+          <xs:documentation>90% full.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="full">
+        <xs:annotation>
+          <xs:documentation>Full.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="unknown">
+        <xs:annotation>
+          <xs:documentation>Unknown.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="ParkingOccupancyTrendEnum">
+    <xs:annotation>
+      <xs:documentation>List of terms used to describe the trend in parking space occupancy.</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="decreasing">
+        <xs:annotation>
+          <xs:documentation>Parking space occupancy is decreasing.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="increasing">
+        <xs:annotation>
+          <xs:documentation>Parking space occupancy is increasing.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="stable">
+        <xs:annotation>
+          <xs:documentation>Parking space occupancy is stable.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="increasingQuickly">
+        <xs:annotation>
+          <xs:documentation>Parking space occupancy is increasing quickly.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="increasingSlowly">
+        <xs:annotation>
+          <xs:documentation>Parking space occupancy is increasing slowly.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="decreasingQuickly">
+        <xs:annotation>
+          <xs:documentation>Parking space occupancy is decreasing quickly.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="decreasingSlowly">
+        <xs:annotation>
+          <xs:documentation>Parking space occupancy is decreasing slowly.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="unknown">
+        <xs:annotation>
+          <xs:documentation>Unknown.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="other">
+        <xs:annotation>
+          <xs:documentation>Other.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:complexType name="ParkingRecordStatus" abstract="true">
+    <xs:annotation>
+      <xs:documentation>Contains the current status of one parking record defined in the static model (i.e. parking site or group of parking sites) or historical or forecasted data for one parking. Only for the second case, 'parkingStatusTime' must be specified.</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="parkingRecordReference" type="D2LogicalModel:_ParkingRecordVersionedReference" minOccurs="1" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>A reference to a static parking record object, i.e. a parking site or a group of parking sites.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="parkingStatusOriginTime" type="D2LogicalModel:DateTime" minOccurs="1" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>The time when the information in this message was generated. Unless 'ParkingStatusValidity' is used, this is also the time the information in this message refers to.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="parkingStatusDescription" type="D2LogicalModel:MultilingualString" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>Additional textual information about the parking status. Can also be used as an alternative in case the enumeration values for 'parkingSiteStatus' or 'groupOfParkingSitesStatus' do not fit.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="parkingSpaceStatus" type="D2LogicalModel:_ParkingRecordStatusParkingSpaceIndexParkingSpaceStatus" minOccurs="0" maxOccurs="unbounded" />
+      <xs:element name="parkingOccupancy" type="D2LogicalModel:ParkingOccupancy" />
+      <xs:element name="groupOfParkingSpacesStatus" type="D2LogicalModel:_ParkingRecordStatusGroupIndexGroupOfParkingSpacesStatus" minOccurs="0" maxOccurs="unbounded" />
+      <xs:element name="parkingStatusValidity" type="D2LogicalModel:ParkingStatusValidity" minOccurs="0" />
+      <xs:element name="overrideParkingThresholds" type="D2LogicalModel:ParkingThresholds" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Possibility to override the thresholds for the parking, which are in principle defined in the static part of the model (ParkingStatusPublication).</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="parkingRecordStatusExtension" type="D2LogicalModel:_ExtensionType" minOccurs="0" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:simpleType name="ParkingSiteOvercrowdingStatusEnum">
+    <xs:annotation>
+      <xs:documentation>The overcrowding status of the parking site. Choose between two levels or simply (no) overcrowding.</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="overcrowding">
+        <xs:annotation>
+          <xs:documentation>The parking site is overcrowded (as specified in ParkingThresholds).</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="noOvercrowding">
+        <xs:annotation>
+          <xs:documentation>The parking site is not overcrowded.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="overcrowdingLevel1">
+        <xs:annotation>
+          <xs:documentation>The parking site is overcrowded at level 1 (as specified in ParkingThresholds).</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="overcrowdingLevel2">
+        <xs:annotation>
+          <xs:documentation>The parking site is overcrowded at level 2 (as specified in ParkingThresholds).</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="unknown">
+        <xs:annotation>
+          <xs:documentation>The overcrowding level is unknown.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="other">
+        <xs:annotation>
+          <xs:documentation>Other.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:complexType name="ParkingSiteStatus">
+    <xs:annotation>
+      <xs:documentation>Dynamic status information for the static object 'ParkingSite'.</xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="D2LogicalModel:ParkingRecordStatus">
+        <xs:sequence>
+          <xs:element name="parkingSiteStatus" type="D2LogicalModel:ParkingSiteStatusEnum" minOccurs="1" maxOccurs="1">
+            <xs:annotation>
+              <xs:documentation>The status of the parking site (spaces available or not).</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="parkingSiteOpeningStatus" type="D2LogicalModel:OpeningStatusEnum" minOccurs="1" maxOccurs="1">
+            <xs:annotation>
+              <xs:documentation>The opening status of the parking site (open or not).</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="parkingSiteOvercrowdingStatus" type="D2LogicalModel:ParkingSiteOvercrowdingStatusEnum" minOccurs="0" maxOccurs="1">
+            <xs:annotation>
+              <xs:documentation>The overcrowding status of the parking site. Choose between using a two-stage approach or the more general statement ‘(not) overcrowding’. You can sharpen this information by using the ‘Thresholds’ component. </xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="parkingSiteStatusExtension" type="D2LogicalModel:_ExtensionType" minOccurs="0" />
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:simpleType name="ParkingSiteStatusEnum">
+    <xs:annotation>
+      <xs:documentation>The status of the parking site (spaces available or not).</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="spacesAvailable">
+        <xs:annotation>
+          <xs:documentation>Parking spaces are currently available.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="almostFull">
+        <xs:annotation>
+          <xs:documentation>The parking site is almost full (as defined by its configuration parameters).</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="fullAtEntrance">
+        <xs:annotation>
+          <xs:documentation>The parking site is considered full at its entrance (e.g. full sign is displayed at entrance or on managing VMS).</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="full">
+        <xs:annotation>
+          <xs:documentation>The parking site is full (as defined by its configuration parameters).</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="unknown">
+        <xs:annotation>
+          <xs:documentation>The status of the parking site is unknown.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="other">
+        <xs:annotation>
+          <xs:documentation>Other.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:complexType name="ParkingSpaceStatus">
+    <xs:annotation>
+      <xs:documentation>Status (occupied or closed) for a single parking space which was defined in the static part of the model.</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="parkingSpaceOccupied" type="D2LogicalModel:Boolean" minOccurs="1" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>True: Parking space is occupied; False: Parking space is free.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="parkingSpaceClosed" type="D2LogicalModel:Boolean" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>True: The parking space is closed / not accessible. False or omitted: The parking space is accessible. This is no statement about its occupation.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="parkingSpaceDeclarationValidNow" type="D2LogicalModel:Boolean" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>Override validity of 'ParkingSpace': True = Parking space declaration is valid now; False = Parking space declaration is invalid now; Omitted = Static validity information is significant (if static validity is omitted too, declaration is valid).</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="measurementOrCalculationTime" type="D2LogicalModel:DateTime" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>Point in time at which this specific value or set of values has been measured or calculated. It may also be a future time at which a data value is predicted.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="lastCalibration" type="D2LogicalModel:DateTime" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>Date of last calibration of the detection system in question.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="parkingSpaceStatusExtension" type="D2LogicalModel:_ExtensionType" minOccurs="0" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="ParkingStatusPublication">
+    <xs:annotation>
+      <xs:documentation>A publication containing the current status of one or more parking sites and/or group of parking sites.</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="parkingTableReference" type="D2LogicalModel:_ParkingTableVersionedReference" minOccurs="0" maxOccurs="unbounded">
+        <xs:annotation>
+          <xs:documentation>It is possible to limit the publication to one or more ParkingTable and to set a reference to these tables here.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="parkingRecordStatus" type="D2LogicalModel:ParkingRecordStatus" maxOccurs="unbounded" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="ParkingStatusValidity">
+    <xs:annotation>
+      <xs:documentation>To be used only for historical or forecasted data. Choose between an explicit point of time, an offset or all points of time within a specified period.</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="parkingStatusTime" type="D2LogicalModel:DateTime" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>Only use for forecasts or historical data to express the point of time for which the information of this parking is either reported or forecasted. Alternately you can define this point of time as an offset with 'parkingStatusTimeOffsetToOrigin'.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="parkingStatusTimeOffsetToOrigin" type="D2LogicalModel:Seconds" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>Only use for forecasts or historical data to express the point of time for which the information of this parking is either reported or forecasted (in form of an offset in seconds to 'parkingStatusOriginTime'; use negative values for historical data). </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="validityTimeSpecification" type="D2LogicalModel:OverallPeriod" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>A specification of periods of validity defined by overall bounding start and end times and the possible intersection of valid periods with exception periods (exception periods overriding valid periods).</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="parkingStatusValidityExtension" type="D2LogicalModel:_ExtensionType" minOccurs="0" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="ParkingThresholds">
+    <xs:annotation>
+      <xs:documentation>Configuration parameters of the parking site, used among others for the dynamic attribute 'parkingStatus'. This component or all elements of it can be overridden in the dynamic model.</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="almostFullDecreasing" type="D2LogicalModel:NonNegativeInteger" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>The number of available spaces above which the state of the parking site is considered to change from 'almost full' to 'spaces available' as the parking site's occupancy decreases. Must be greater than 'almostFullIncreasing' value.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="almostFullIncreasing" type="D2LogicalModel:NonNegativeInteger" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>The number of available spaces below which the state of the site is considered to change from 'spaces available' to 'almost full' as the site's occupancy increases. Must be lower or equal to 'almostFullDecreasing' and greater 'fullDecreasing'.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="entranceFull" type="D2LogicalModel:NonNegativeInteger" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>The number of available spaces below which the parking site is considered to be 'full' at its entrance (e.g. full sign is displayed at entrance or on managing VMS).</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="fullDecreasing" type="D2LogicalModel:NonNegativeInteger" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>The number of available spaces above which the state of the parking site is considered to change from 'full' to 'almost full' as the site's occupancy decreases. Must be greater or equal to 'fullIncreasing' value and lower than 'almostFullIncreasing'.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="fullIncreasing" type="D2LogicalModel:NonNegativeInteger" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>The number of available spaces below which the state of the parking site is considered to change from 'almost full' to 'full' as the site's occupancy increases. Must be lower than or equal to 'fullDecreasing' value.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="overcrowding" type="D2LogicalModel:NonNegativeInteger" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>The number of vehicles on the parking above which the overcrowding state of the parking site is considered to change to 'overcrowding'.  Can be used as an alternative to the overcrowding level attributes.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="overcrowdingLevel1" type="D2LogicalModel:NonNegativeInteger" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>The number of vehicles on the parking site above which the overcrowding state of the parking site is considered to change from 'noOvercrowding' to 'overcrowdingLevel1'. Must be lower than the 'overcrowdingLevel2' value.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="overcrowdingLevel2" type="D2LogicalModel:NonNegativeInteger" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>The number of vehicles on the parking site above which the overcrowding state of the parking site is considered to change from 'overcrowdingLevel1' to 'overcrowdingLevel2'. Must be greater than the 'overcrowdingLevel1' value.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="parkingLastMaximumOccupancy" type="D2LogicalModel:NonNegativeInteger" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>The last known occupancy (number of parking vehicles on the site) under safe conditions.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="parkingThresholdsExtension" type="D2LogicalModel:_ExtensionType" minOccurs="0" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:simpleType name="ParkingVacantSpacesEnum">
+    <xs:annotation>
+      <xs:documentation>Parking vacant spaces enum.</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="noParkingSpacesAvailable">
+        <xs:annotation>
+          <xs:documentation>No parking spaces available.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="expectNoSpacesAvailable">
+        <xs:annotation>
+          <xs:documentation>Expect no parking spaces available.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="onlyAFewSpacesAvailable">
+        <xs:annotation>
+          <xs:documentation>Only a few parking spaces available.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="lessThan10SpacesAvailable">
+        <xs:annotation>
+          <xs:documentation>Less than 10 parking spaces available.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="lessThan20SpacesAvailable">
+        <xs:annotation>
+          <xs:documentation>Less than 20 parking spaces available.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="lessThan30SpacesAvailable">
+        <xs:annotation>
+          <xs:documentation>Less than 30 parking spaces available.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="lessThan40SpacesAvailable">
+        <xs:annotation>
+          <xs:documentation>Less than 40 parking spaces available.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="lessThan50SpacesAvailable">
+        <xs:annotation>
+          <xs:documentation>Less than 50 parking spaces available.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="unknown">
+        <xs:annotation>
+          <xs:documentation>Unknown.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="other">
+        <xs:annotation>
+          <xs:documentation>Other.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:complexType name="PayloadPublication" abstract="true">
+    <xs:annotation>
+      <xs:documentation>A payload publication of traffic related information or associated management information created at a specific point in time that can be exchanged via a DATEX II interface.</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="publicationTime" type="D2LogicalModel:DateTime" minOccurs="1" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>Date/time at which the payload publication was created.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="publicationCreator" type="D2LogicalModel:InternationalIdentifier" />
+      <xs:element name="payloadPublicationExtension" type="D2LogicalModel:_ExtensionType" minOccurs="0" />
+    </xs:sequence>
+    <xs:attribute name="lang" type="D2LogicalModel:Language" use="required">
+      <xs:annotation>
+        <xs:documentation>The default language used throughout the payload publication.</xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+  <xs:simpleType name="Percentage">
+    <xs:annotation>
+      <xs:documentation>A measure of percentage.</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="D2LogicalModel:Float" />
+  </xs:simpleType>
+  <xs:complexType name="Reference">
+    <xs:attribute name="id" type="xs:string" use="required" />
+  </xs:complexType>
+  <xs:simpleType name="ResponseEnum">
+    <xs:annotation>
+      <xs:documentation>Types of response that a supplier can return to a requesting client.</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="acknowledge">
+        <xs:annotation>
+          <xs:documentation>An acknowledgement that the supplier has received and complied with the client's request.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="requestDenied">
+        <xs:annotation>
+          <xs:documentation>A notification that the supplier has denied the client's request for a data.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="subscriptionRequestDenied">
+        <xs:annotation>
+          <xs:documentation>A notification that the supplier has denied the client's request for a subscription.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="Seconds">
+    <xs:annotation>
+      <xs:documentation>Seconds.</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="D2LogicalModel:Float" />
+  </xs:simpleType>
+  <xs:simpleType name="String">
+    <xs:annotation>
+      <xs:documentation>A character string whose value space is the set of finite-length sequences of characters. Every character has a corresponding Universal Character Set code point (as defined in ISO/IEC 10646), which is an integer.</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:maxLength value="1024" />
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:complexType name="VehicleCharacteristics">
+    <xs:annotation>
+      <xs:documentation>The characteristics of a vehicle, e.g. lorry of gross weight greater than 30 tonnes.</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="loadType" type="D2LogicalModel:LoadTypeEnum" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>The type of load carried by the vehicle, especially in respect of hazardous loads.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="vehicleType" type="D2LogicalModel:VehicleTypeEnum" minOccurs="0" maxOccurs="unbounded">
+        <xs:annotation>
+          <xs:documentation>Vehicle type.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="vehicleCharacteristicsExtension" type="D2LogicalModel:_VehicleCharacteristicsExtensionType" minOccurs="0" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="VehicleCharacteristicsExtended">
+    <xs:annotation>
+      <xs:documentation>Extension point for 'VehicleCharacteristics' to support additional attributes and literals like additional fuel types, load types etc.</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="loadType2" type="D2LogicalModel:LoadType2Enum" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>Loads currently not supported in 'LoadTypeEnum'.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="vehicleType2" type="D2LogicalModel:VehicleType2Enum" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>Vehicle types currently not supported in 'VehicleTypeEnum'.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="VehicleCountAndRate">
+    <xs:annotation>
+      <xs:documentation>Vehicle rates can be assigned to a parking site or to assigned parking spaces. Furthermore, they can reference to a measurement site or to an entrance/exit.</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="measurementSiteReference" type="D2LogicalModel:_MeasurementSiteRecordVersionedReference" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>A reference to a versioned measurement site record defined in a Measurement Site table.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="measuredValueIndex" type="D2LogicalModel:NonNegativeInteger" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>If a measurement site is specified, the index of the measured value can be specified here.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="dedicatedAccess" type="D2LogicalModel:_ParkingAccessReference" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>Specifies a reference to an access, object (i.e. an entrance, an exit or both). A Point location and further characteristics can be specified for those objects.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="measurementTimeDefault" type="D2LogicalModel:DateTime" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>The time associated with the set of measurements. It may be the time of the beginning, the end or the middle of the measurement period.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="lastCalibration" type="D2LogicalModel:DateTime" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>Date of last calibration of the detection system in question.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="coveringPetrolStationArea" type="D2LogicalModel:Boolean" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>Indication, if this detector also covers the area of a petrol station.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="vehicleCountWithinInterval" type="D2LogicalModel:VehicleCountWithinInterval" minOccurs="0" maxOccurs="unbounded" />
+      <xs:element name="vehicleRate" type="D2LogicalModel:VehicleRate" minOccurs="0" maxOccurs="unbounded" />
+      <xs:element name="vehicleCountAndRateExtension" type="D2LogicalModel:_ExtensionType" minOccurs="0" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="VehicleCountValue">
+    <xs:annotation>
+      <xs:documentation>A measured or calculated value of absolute count of vehicles within a specified period of time expressed as non negative integer.</xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="D2LogicalModel:DataValue">
+        <xs:sequence>
+          <xs:element name="vehicleCount" type="D2LogicalModel:NonNegativeInteger" minOccurs="1" maxOccurs="1">
+            <xs:annotation>
+              <xs:documentation>A measured or calculated absolute count of vehicles within a specified period of time expressed as non negative integer.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="vehicleCountValueExtension" type="D2LogicalModel:_ExtensionType" minOccurs="0" />
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="VehicleCountWithinInterval">
+    <xs:annotation>
+      <xs:documentation>Gives incoming and/or outgoing vehicles and/or change of occupied spaces within a given interval. The interval is given in positive or negative seconds related to 'measurementOrCalculationTime' or 'measurementDefaultTime'.</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="measurementOrCalcualtionTime" type="D2LogicalModel:DateTime" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>Point in time at which this specific value or set of values has been measured or calculated. It may also be a future time at which a data value is predicted.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="measurementInterval" type="D2LogicalModel:Seconds" minOccurs="1" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>Interval for which the data applies. Usually, this value should be negative. Example: - 300 = last 5 minutes up to 'measurementOrCalculationTime' or 'measurementTimeDefault'. Use a positive value only for predictions. Example: 600 = next ten minutes.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="numberOfIncomingVehicles" type="D2LogicalModel:VehicleCountValue" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Number of vehicles of specified type that entered the specified parking within the given interval.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="numberOfOutgoingVehicles" type="D2LogicalModel:VehicleCountValue" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>Number of vehicles of specified type that left the specified parking within the given interval.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="changeOfOccupiedSpaces" type="D2LogicalModel:OccupancyChangeValue" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>The change in the number of occupied spaces for specified vehicles within the given interval. Negative values mean less occupied spaces than at the beginning of the interval.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="countedVehicles" type="D2LogicalModel:VehicleCharacteristics" minOccurs="0" />
+      <xs:element name="vehicleCountWithinIntervalExtension" type="D2LogicalModel:_ExtensionType" minOccurs="0" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="VehicleFlowValue">
+    <xs:annotation>
+      <xs:documentation>A measured or calculated value of the flow rate of vehicles.</xs:documentation>
+    </xs:annotation>
+    <xs:complexContent>
+      <xs:extension base="D2LogicalModel:DataValue">
+        <xs:sequence>
+          <xs:element name="vehicleFlowRate" type="D2LogicalModel:VehiclesPerHour" minOccurs="1" maxOccurs="1">
+            <xs:annotation>
+              <xs:documentation>A value of vehicle flow rate expressed in vehicles per hour.</xs:documentation>
+            </xs:annotation>
+          </xs:element>
+          <xs:element name="vehicleFlowValueExtension" type="D2LogicalModel:_ExtensionType" minOccurs="0" />
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:complexType name="VehicleRate">
+    <xs:annotation>
+      <xs:documentation>Gives information about fill and exit rates OR vehicle flow rate (without direction). If the time stamp is omitted, 'measurementTimeDefault' is used.</xs:documentation>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element name="measurementOrCalculationTime" type="D2LogicalModel:DateTime" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>Point in time at which this specific value or set of values has been measured or calculated. It may also be a future time at which a data value is predicted.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="fillRate" type="D2LogicalModel:VehicleFlowValue" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>The rate at which vehicles are entering the parking.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="exitRate" type="D2LogicalModel:VehicleFlowValue" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>The rate at which vehicles are exiting the parking.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="vehicleFlowRate" type="D2LogicalModel:VehicleFlowValue" minOccurs="0">
+        <xs:annotation>
+          <xs:documentation>A value of vehicle flow rate expressed in vehicles per hour.</xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="measuredVehicles" type="D2LogicalModel:VehicleCharacteristics" minOccurs="0" />
+      <xs:element name="vehicleRateExtension" type="D2LogicalModel:_ExtensionType" minOccurs="0" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:simpleType name="VehiclesPerHour">
+    <xs:annotation>
+      <xs:documentation>Vehicles per hour.</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="D2LogicalModel:NonNegativeInteger" />
+  </xs:simpleType>
+  <xs:simpleType name="VehicleType2Enum">
+    <xs:annotation>
+      <xs:documentation>Vehicle types which are currently not supported in vehicleType.</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="motorhome">
+        <xs:annotation>
+          <xs:documentation>Motorhome</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="heavyHaulageVehicle">
+        <xs:annotation>
+          <xs:documentation>Heavy-haulage vehicle</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:simpleType name="VehicleTypeEnum">
+    <xs:annotation>
+      <xs:documentation>Types of vehicle.</xs:documentation>
+    </xs:annotation>
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="bus">
+        <xs:annotation>
+          <xs:documentation>Bus.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="car">
+        <xs:annotation>
+          <xs:documentation>Car.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="carWithTrailer">
+        <xs:annotation>
+          <xs:documentation>Car towing a trailer.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+      <xs:enumeration value="lorry">
+        <xs:annotation>
+          <xs:documentation>Lorry of any type.</xs:documentation>
+        </xs:annotation>
+      </xs:enumeration>
+    </xs:restriction>
+  </xs:simpleType>
+  <xs:complexType name="VersionedReference">
+    <xs:attribute name="id" type="xs:string" use="required" />
+    <xs:attribute name="version" type="xs:string" use="required" />
+  </xs:complexType>
+</xs:schema>
