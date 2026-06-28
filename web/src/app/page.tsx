@@ -1,15 +1,15 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useState, useCallback } from 'react'
-import type { SiteProperties } from '@/components/Map'
+import { useState, useCallback, useRef } from 'react'
+import type { SiteProperties, MapHandle } from '@/components/Map'
+import type { DailyMetric } from '@/components/DayPicker'
 
 const Map = dynamic(() => import('@/components/Map'), { ssr: false })
 const SitePanel = dynamic(() => import('@/components/SitePanel'), { ssr: false })
 const TimeSlider = dynamic(() => import('@/components/TimeSlider'), { ssr: false })
 const DayPicker = dynamic(() => import('@/components/DayPicker'), { ssr: false })
-
-import type { DailyMetric } from '@/components/DayPicker'
+const SearchBox = dynamic(() => import('@/components/SearchBox'), { ssr: false })
 
 type ViewMode = 'live' | 'history' | 'dailymax'
 
@@ -18,6 +18,7 @@ export default function Home() {
   const [mode, setMode] = useState<ViewMode>('live')
   const [snapshotTime, setSnapshotTime] = useState<Date | null>(null)
   const [dailyDate, setDailyDate] = useState<string>('')
+  const mapRef = useRef<MapHandle>(null)
   const [dailyMetric, setDailyMetric] = useState<DailyMetric>('max')
 
   const handleTimeChange = useCallback((t: Date | null) => {
@@ -27,6 +28,21 @@ export default function Home() {
   const handleDayChange = useCallback((d: string, m: DailyMetric) => {
     setDailyDate(d)
     setDailyMetric(m)
+  }, [])
+
+  const handleSearchSelect = useCallback((result: { longitude: number; latitude: number; datex_id: string; name: string; total_spaces: number; occupancy_pct: number | null }) => {
+    mapRef.current?.flyTo(result.longitude, result.latitude, 14)
+    setSelectedSite({
+      datex_id: result.datex_id,
+      name: result.name,
+      total_spaces: result.total_spaces,
+      vacant_spaces: null,
+      is_synthetic: false,
+      occupancy_pct: result.occupancy_pct,
+      site_status: null,
+      opening_status: null,
+      fetched_at: null,
+    })
   }, [])
 
   const METRIC_LABELS = { max: 'Maximum', mean: 'Mittelwert', median: 'Median', min: 'Minimum' }
@@ -47,7 +63,7 @@ export default function Home() {
     <main className="relative w-screen h-screen overflow-hidden">
       {/* Map fills everything except the bottom control bar */}
       <div className="absolute inset-0 bottom-14">
-        <Map onSiteSelect={setSelectedSite} dataUrl={dataUrl} metricLabel={metricLabel} />
+        <Map ref={mapRef} onSiteSelect={setSelectedSite} dataUrl={dataUrl} metricLabel={metricLabel} />
       </div>
 
       {selectedSite && (
@@ -84,6 +100,11 @@ export default function Home() {
         >
           GitHub
         </a>
+      </div>
+
+      {/* Search box — top left */}
+      <div className="absolute top-3 left-4 z-10">
+        <SearchBox onSelect={handleSearchSelect} />
       </div>
 
       {/* Mode toggle — top centre */}

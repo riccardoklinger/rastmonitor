@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useImperativeHandle, forwardRef } from 'react'
 import maplibregl from 'maplibre-gl'
 
 // Colour scale by occupancy_pct
@@ -29,11 +29,13 @@ export interface SiteProperties {
   fetched_at: string | null
 }
 
+export interface MapHandle {
+  flyTo: (lng: number, lat: number, zoom?: number) => void
+}
+
 interface MapProps {
   onSiteSelect: (site: SiteProperties) => void
-  /** URL to fetch GeoJSON from. Defaults to /api/sites (live). */
   dataUrl?: string
-  /** Label for the occupancy value shown in the popup (e.g. "Maximum", "Mittelwert") */
   metricLabel?: string
 }
 
@@ -89,11 +91,20 @@ function buildPopupHtml(props: SiteProperties, metricLabel: string): string {
   `
 }
 
-export default function Map({ onSiteSelect, dataUrl = '/api/sites', metricLabel = 'Auslastung' }: MapProps) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<maplibregl.Map | null>(null)
-  const dataUrlRef = useRef(dataUrl)
+const Map = forwardRef<MapHandle, MapProps>(function Map(
+  { onSiteSelect, dataUrl = '/api/sites', metricLabel = 'Auslastung' },
+  ref
+) {
+  const containerRef   = useRef<HTMLDivElement>(null)
+  const mapRef         = useRef<maplibregl.Map | null>(null)
+  const dataUrlRef     = useRef(dataUrl)
   const metricLabelRef = useRef(metricLabel)
+
+  useImperativeHandle(ref, () => ({
+    flyTo: (lng, lat, zoom = 13) => {
+      mapRef.current?.flyTo({ center: [lng, lat], zoom, essential: true })
+    },
+  }))
 
   // Keep refs in sync
   useEffect(() => { metricLabelRef.current = metricLabel }, [metricLabel])
@@ -176,4 +187,6 @@ export default function Map({ onSiteSelect, dataUrl = '/api/sites', metricLabel 
   }, [onSiteSelect])
 
   return <div ref={containerRef} className="w-full h-full" />
-}
+})
+
+export default Map
