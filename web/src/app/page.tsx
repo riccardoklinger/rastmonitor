@@ -41,6 +41,30 @@ export default function Home() {
         <SitePanel site={selectedSite} onClose={() => setSelectedSite(null)} />
       )}
 
+      {/* Footer links */}
+      <div className="absolute top-3 right-16 z-10 flex gap-2 text-xs">
+        <a
+          href="/about"
+          className="px-2 py-1 bg-white/90 rounded shadow text-gray-600 hover:text-gray-900 hover:bg-white transition"
+        >
+          ℹ️ Über
+        </a>
+        <a
+          href="/impressum"
+          className="px-2 py-1 bg-white/90 rounded shadow text-gray-600 hover:text-gray-900 hover:bg-white transition"
+        >
+          Impressum
+        </a>
+        <a
+          href="https://github.com/riccardoklinger/rastmonitor"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="px-2 py-1 bg-white/90 rounded shadow text-gray-600 hover:text-gray-900 hover:bg-white transition"
+        >
+          GitHub
+        </a>
+      </div>
+
       {/* Mode toggle — top centre */}
       <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex rounded-lg shadow border border-gray-200 overflow-hidden text-sm font-medium">
         {([
