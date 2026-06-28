@@ -4,26 +4,36 @@ import dynamic from 'next/dynamic'
 import { useState, useCallback } from 'react'
 import type { SiteProperties } from '@/components/Map'
 
-// MapLibre must be loaded client-side only (no SSR)
 const Map = dynamic(() => import('@/components/Map'), { ssr: false })
 const SitePanel = dynamic(() => import('@/components/SitePanel'), { ssr: false })
 const TimeSlider = dynamic(() => import('@/components/TimeSlider'), { ssr: false })
+const DayPicker = dynamic(() => import('@/components/DayPicker'), { ssr: false })
+
+type ViewMode = 'live' | 'history' | 'dailymax'
 
 export default function Home() {
   const [selectedSite, setSelectedSite] = useState<SiteProperties | null>(null)
+  const [mode, setMode] = useState<ViewMode>('live')
   const [snapshotTime, setSnapshotTime] = useState<Date | null>(null)
+  const [dailyDate, setDailyDate] = useState<string>('')
 
   const handleTimeChange = useCallback((t: Date | null) => {
     setSnapshotTime(t)
+    if (t === null) setMode('live')
   }, [])
 
-  const dataUrl = snapshotTime
-    ? `/api/sites/snapshot?at=${encodeURIComponent(snapshotTime.toISOString())}`
-    : '/api/sites'
+  const handleDayChange = useCallback((d: string) => setDailyDate(d), [])
+
+  const dataUrl =
+    mode === 'dailymax' && dailyDate
+      ? `/api/sites/daily-max?date=${dailyDate}`
+      : mode === 'history' && snapshotTime
+      ? `/api/sites/snapshot?at=${encodeURIComponent(snapshotTime.toISOString())}`
+      : '/api/sites'
 
   return (
     <main className="relative w-screen h-screen overflow-hidden">
-      {/* Map fills everything except the slider bar at the bottom */}
+      {/* Map fills everything except the bottom control bar */}
       <div className="absolute inset-0 bottom-14">
         <Map onSiteSelect={setSelectedSite} dataUrl={dataUrl} />
       </div>
@@ -32,9 +42,38 @@ export default function Home() {
         <SitePanel site={selectedSite} onClose={() => setSelectedSite(null)} />
       )}
 
-      {/* Legend — raised above slider */}
+      {/* Mode toggle — top centre */}
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex rounded-lg shadow border border-gray-200 overflow-hidden text-sm font-medium">
+        {([
+          ['live',     '● Live'],
+          ['history',  '⏱ 72h'],
+          ['dailymax', '📅 Tagesmax'],
+        ] as [ViewMode, string][]).map(([m, label]) => (
+          <button
+            key={m}
+            onClick={() => setMode(m)}
+            className={`px-4 py-1.5 transition ${
+              mode === m
+                ? m === 'dailymax'
+                  ? 'bg-amber-500 text-white'
+                  : 'bg-blue-600 text-white'
+                : 'bg-white text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {selectedSite && (
+        <SitePanel site={selectedSite} onClose={() => setSelectedSite(null)} />
+      )}
+
+      {/* Legend */}
       <div className="absolute bottom-16 left-4 bg-white rounded-lg shadow-md p-3 text-xs space-y-1 z-10">
-        <p className="font-semibold text-gray-700 mb-1">Auslastung</p>
+        <p className="font-semibold text-gray-700 mb-1">
+          {mode === 'dailymax' ? 'Tagesmax-Auslastung' : 'Auslastung'}
+        </p>
         {[
           ['#22c55e', '< 50 %'],
           ['#eab308', '50 – 80 %'],
@@ -44,17 +83,23 @@ export default function Home() {
           ['#9ca3af', 'Keine Daten'],
         ].map(([color, label]) => (
           <div key={label} className="flex items-center gap-2">
-            <span
-              className="inline-block w-3 h-3 rounded-full border border-white"
-              style={{ backgroundColor: color }}
-            />
+            <span className="inline-block w-3 h-3 rounded-full border border-white" style={{ backgroundColor: color }} />
             <span className="text-gray-600">{label}</span>
           </div>
         ))}
       </div>
 
-      {/* Historical time slider */}
-      <TimeSlider onChange={handleTimeChange} />
+      {/* Bottom control bar */}
+      {mode === 'history' && <TimeSlider onChange={handleTimeChange} />}
+      {mode === 'dailymax' && <DayPicker onChange={handleDayChange} />}
+      {mode === 'live' && (
+        <div className="absolute bottom-0 left-0 right-0 h-14 bg-white/80 border-t border-gray-200 flex items-center justify-center z-10">
+          <span className="flex items-center gap-2 text-sm text-green-600 font-medium">
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            Live-Daten · Aktualisierung alle 5 Minuten
+          </span>
+        </div>
+      )}
     </main>
   )
 }
