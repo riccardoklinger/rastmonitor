@@ -1,14 +1,80 @@
-# rastmonitor
+# 🅿️ rastmonitor
 
-## What this does   
-rastmonitor is subscribing to the SID service from toll collect. it stores the paraking places in a "static table" which is only updaterd once a day. the more volatile data is called from the service every 15min. The volatile data consists of the current usage / filling in % of the parking spots. normally: in the night these value is around 100% or above. daily it is way below.
-The data is stored in a postgres database.
-the data is visualized in a minimal webmapping application based on next.js with map libre.
-the whole infrastructure is run in docker containers to make maintenance as easy as possible. 
+**Echtzeit-Auslastungsmonitor für LKW-Rastplätze in Deutschland**
 
-## datasource
+→ [rast-monitor.de](https://rast-monitor.de) · [Issue melden](https://github.com/riccardoklinger/rastmonitor/issues) · [Projekt unterstützen](https://github.com/sponsors/riccardoklinger)
 
-static data: https://mobilithek.info:8443/mobilithek/api/v1.0/subscription/soap/1006362396091736064/clientPullService 
-dynamic data: https://mobilithek.info:8443/mobilithek/api/v1.0/subscription/soap/1006362327707783168/clientPullService 
+---
 
-The data description is in xsd in /static/xsd for the dynamic (parkingStatus) and static (ParkingTable) data.
+## Was ist rastmonitor?
+
+rastmonitor visualisiert die aktuelle und historische Belegung von LKW-Rastplätzen auf deutschen Autobahnen. Die Daten stammen aus dem DATEX-II-Feed von [Toll Collect](https://www.toll-collect.de) über die [Mobilithek](https://mobilithek.info) und werden alle 15 Minuten aktualisiert.
+
+### Ansichten
+
+| Modus | Beschreibung |
+|-------|-------------|
+| **Live** | Aktuelle Auslastung aller Rastplätze |
+| **72h** | Zeitreise der letzten 3 Tage (15-Minuten-Schritte) |
+| **90 Tage** | Tageshistorie mit Auswahl von Max, Mittel, Median oder Min |
+
+## Datenbasis
+
+| Typ | Beschreibung | Aktualisierung |
+|-----|-------------|----------------|
+| Statisch | Stammdaten der Rastplätze (Name, Position, Kapazität) | 1× täglich, 03:00 Uhr |
+| Dynamisch | Aktuelle Belegung in % | alle 15 Minuten |
+
+Die XSD-Schemata der DATEX-II-Daten liegen unter [`static/xsd/`](./static/xsd/).
+
+## Technischer Stack
+
+| Komponente | Technologie |
+|-----------|------------|
+| Datenbank | PostgreSQL + PostGIS |
+| Ingestion | Python 3.12 + cron |
+| Tile-Server | [Martin](https://github.com/maplibre/martin) |
+| Frontend | Next.js + MapLibre GL JS |
+| Basemap | BKG basemapDE Vektor |
+| Betrieb | Docker Compose |
+
+## Lokale Entwicklung
+
+### Voraussetzungen
+
+- Docker & Docker Compose
+- Mobilithek-Zugangsdaten (Zertifikat + Endpunkt-URLs)
+
+### Einrichten
+
+```bash
+cp .env.example .env
+# .env mit eigenen Werten befüllen
+docker compose up -d
+```
+
+Testdaten einspielen (ohne echte API-Zugangsdaten):
+
+```bash
+docker compose run --rm ingestion python3 seed_testdata.py
+```
+
+Die Anwendung läuft dann unter [http://localhost:3001](http://localhost:3001).
+
+### Dienste & Ports
+
+| Dienst | Port |
+|--------|------|
+| Web (Next.js) | 3001 |
+| Datenbank (PostgreSQL) | 5433 |
+| Tile-Server (Martin) | 3002 |
+
+## Deployment
+
+Siehe [DEPLOYMENT.md](./DEPLOYMENT.md) für die vollständige Anleitung mit nginx und HTTPS.
+
+## Lizenz & Impressum
+
+Dieses Projekt ist Open Source. Datenschutz und Impressum: [rast-monitor.de/impressum](https://rast-monitor.de/impressum)
+
+Daten bereitgestellt von **Toll Collect GmbH** via Mobilithek – lizenziert unter den Nutzungsbedingungen der Mobilithek.
