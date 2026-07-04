@@ -99,6 +99,7 @@ interface Props {
 export default function SitePanel({ site, onClose }: Props) {
   const [raw, setRaw] = useState<RawRow[]>([])
   const [daily, setDaily] = useState<DailyRow[]>([])
+  const [expanded, setExpanded] = useState(false)
 
   useEffect(() => {
     setRaw([])
@@ -127,103 +128,124 @@ export default function SitePanel({ site, onClose }: Props) {
   }))
   const dailyHasSynthetic = daily.some((d) => d.is_synthetic)
 
+  const panelClass = expanded
+    ? 'fixed inset-0 z-50 bg-white flex flex-col overflow-y-auto'
+    : 'absolute top-0 right-0 h-full w-80 bg-white shadow-xl z-10 flex flex-col overflow-y-auto'
+
+  const rawChartH  = expanded ? 260 : 100
+  const dailyChartH = expanded ? 340 : 150
+
   return (
-    <aside className="absolute top-0 right-0 h-full w-80 bg-white shadow-xl z-10 flex flex-col overflow-y-auto">
-      {/* Header */}
-      <div className="flex items-start justify-between p-4 border-b">
-        <div>
-          <h2 className="font-semibold text-sm leading-tight">{site.name ?? site.datex_id}</h2>
-          <p className="text-xs text-gray-500 mt-0.5">
-            {site.total_spaces ? `${site.total_spaces} Stellplätze` : ''}
-          </p>
-        </div>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-700 ml-2 text-lg leading-none">✕</button>
-      </div>
-
-      {/* Live status */}
-      <div className="p-4 border-b space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-500">Aktuelle Auslastung</span>
-          <OccupancyBadge pct={site.occupancy_pct} />
-        </div>
-        {site.opening_status && (
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-500">Status</span>
-            <span className="text-xs capitalize">{site.opening_status}</span>
+    <>
+      {expanded && <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setExpanded(false)} />}
+      <aside className={panelClass}>
+        {/* Header */}
+        <div className={`flex items-start justify-between border-b ${expanded ? 'p-6' : 'p-4'}`}>
+          <div>
+            <h2 className={`font-semibold leading-tight ${expanded ? 'text-lg' : 'text-sm'}`}>{site.name ?? site.datex_id}</h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {site.total_spaces ? `${site.total_spaces} Stellplätze` : ''}
+            </p>
           </div>
-        )}
-        {site.fetched_at && (
-          <p className="text-xs text-gray-400">
-            Letzte Aktualisierung:{' '}
-            {new Date(site.fetched_at).toLocaleString('de-DE')}
-          </p>
-        )}
-      </div>
-
-      {/* 72 h sparkline */}
-      <div className="p-4 border-b">
-        <h3 className="text-xs font-medium text-gray-700 mb-2">Letzte 72 Stunden</h3>
-        {rawData.length === 0 ? (
-          <p className="text-xs text-gray-400">Keine Daten</p>
-        ) : (
-          <div className="relative">
-            {rawHasSynthetic && <SyntheticBadge />}
-            <ResponsiveContainer width="100%" height={100}>
-              <AreaChart data={rawData} margin={{ top: 4, right: 0, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="occGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="t" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
-                <YAxis domain={[0, 'auto']} tick={{ fontSize: 9 }} />
-                <Tooltip content={<RawTooltip />} />
-                <ReferenceLine y={100} stroke="#ef4444" strokeDasharray="3 3" />
-                <Area
-                  type="monotone"
-                  dataKey="occ"
-                  stroke="#3b82f6"
-                  fill="url(#occGrad)"
-                  dot={false}
-                  connectNulls
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+          <div className="flex items-center gap-1 ml-2">
+            <button
+              onClick={() => setExpanded(e => !e)}
+              title={expanded ? 'Verkleinern' : 'Vergrößern'}
+              className="text-gray-400 hover:text-gray-700 text-base leading-none px-1"
+            >
+              {expanded ? '⊡' : '⛶'}
+            </button>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-lg leading-none">✕</button>
           </div>
-        )}
-      </div>
-
-      {/* Daily chart: last 90 days */}
-      <div className="p-4">
-        <h3 className="text-xs font-medium text-gray-700 mb-2">Tageswerte (90 Tage)</h3>
-        {dailyData.length === 0 ? (
-          <p className="text-xs text-gray-400">Keine Daten</p>
-        ) : (
-          <div className="relative">
-            {dailyHasSynthetic && <SyntheticBadge />}
-            <ResponsiveContainer width="100%" height={150}>
-              <LineChart data={dailyData} margin={{ top: 4, right: 0, left: -20, bottom: 0 }}>
-                <XAxis dataKey="day" tick={{ fontSize: 9 }} interval={Math.floor(dailyData.length / 5)} />
-                <YAxis domain={[0, 'auto']} tick={{ fontSize: 9 }} />
-                <Tooltip content={<DailyTooltip />} />
-                <ReferenceLine y={100} stroke="#ef4444" strokeDasharray="3 3" />
-                <Line type="monotone" dataKey="max" stroke="#ef4444" dot={false} name="Max" strokeWidth={1} />
-                <Line type="monotone" dataKey="mean" stroke="#3b82f6" dot={false} name="Mittel" strokeWidth={1.5} />
-                <Line type="monotone" dataKey="min" stroke="#22c55e" dot={false} name="Min" strokeWidth={1} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-        <div className="flex gap-3 mt-1 justify-center">
-          {[['#ef4444', 'Max'], ['#3b82f6', 'Mittel'], ['#22c55e', 'Min']].map(([c, l]) => (
-            <span key={l} className="flex items-center gap-1 text-xs text-gray-500">
-              <span className="inline-block w-3 h-0.5" style={{ backgroundColor: c }} />
-              {l}
-            </span>
-          ))}
         </div>
-      </div>
-    </aside>
+
+        <div className={expanded ? 'grid grid-cols-1 lg:grid-cols-2 gap-0 flex-1' : 'flex flex-col flex-1'}>
+          {/* Live status */}
+          <div className={`border-b space-y-2 ${expanded ? 'p-6' : 'p-4'}`}>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-500">Aktuelle Auslastung</span>
+              <OccupancyBadge pct={site.occupancy_pct} />
+            </div>
+            {site.opening_status && (
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-500">Status</span>
+                <span className="text-xs capitalize">{site.opening_status}</span>
+              </div>
+            )}
+            {site.fetched_at && (
+              <p className="text-xs text-gray-400">
+                Letzte Aktualisierung:{' '}
+                {new Date(site.fetched_at).toLocaleString('de-DE')}
+              </p>
+            )}
+          </div>
+
+          {/* 72 h chart */}
+          <div className={`border-b ${expanded ? 'p-6 lg:border-b-0 lg:border-l' : 'p-4'}`}>
+            <h3 className="text-xs font-medium text-gray-700 mb-2">Letzte 72 Stunden</h3>
+            {rawData.length === 0 ? (
+              <p className="text-xs text-gray-400">Keine Daten</p>
+            ) : (
+              <div className="relative">
+                {rawHasSynthetic && <SyntheticBadge />}
+                <ResponsiveContainer width="100%" height={rawChartH}>
+                  <AreaChart data={rawData} margin={{ top: 4, right: 0, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="occGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="t" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
+                    <YAxis domain={[0, 'auto']} tick={{ fontSize: 9 }} />
+                    <Tooltip content={<RawTooltip />} />
+                    <ReferenceLine y={100} stroke="#ef4444" strokeDasharray="3 3" />
+                    <Area
+                      type="monotone"
+                      dataKey="occ"
+                      stroke="#3b82f6"
+                      fill="url(#occGrad)"
+                      dot={false}
+                      connectNulls
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+
+          {/* Daily chart: last 90 days */}
+          <div className={expanded ? 'p-6 lg:col-span-2' : 'p-4'}>
+            <h3 className="text-xs font-medium text-gray-700 mb-2">Tageswerte (90 Tage)</h3>
+            {dailyData.length === 0 ? (
+              <p className="text-xs text-gray-400">Keine Daten</p>
+            ) : (
+              <div className="relative">
+                {dailyHasSynthetic && <SyntheticBadge />}
+                <ResponsiveContainer width="100%" height={dailyChartH}>
+                  <LineChart data={dailyData} margin={{ top: 4, right: 0, left: -20, bottom: 0 }}>
+                    <XAxis dataKey="day" tick={{ fontSize: 9 }} interval={Math.floor(dailyData.length / 5)} />
+                    <YAxis domain={[0, 'auto']} tick={{ fontSize: 9 }} />
+                    <Tooltip content={<DailyTooltip />} />
+                    <ReferenceLine y={100} stroke="#ef4444" strokeDasharray="3 3" />
+                    <Line type="monotone" dataKey="max" stroke="#ef4444" dot={false} name="Max" strokeWidth={1} />
+                    <Line type="monotone" dataKey="mean" stroke="#3b82f6" dot={false} name="Mittel" strokeWidth={1.5} />
+                    <Line type="monotone" dataKey="min" stroke="#22c55e" dot={false} name="Min" strokeWidth={1} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+            <div className="flex gap-3 mt-1 justify-center">
+              {[['#ef4444', 'Max'], ['#3b82f6', 'Mittel'], ['#22c55e', 'Min']].map(([c, l]) => (
+                <span key={l} className="flex items-center gap-1 text-xs text-gray-500">
+                  <span className="inline-block w-3 h-0.5" style={{ backgroundColor: c }} />
+                  {l}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </aside>
+    </>
   )
 }
