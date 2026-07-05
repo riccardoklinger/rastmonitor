@@ -156,6 +156,13 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
 
     map.addControl(new maplibregl.NavigationControl(), 'top-right')
     map.addControl(
+      new maplibregl.GeolocateControl({
+        positionOptions: { enableHighAccuracy: true },
+        trackUserLocation: false,
+      }),
+      'top-right'
+    )
+    map.addControl(
       new maplibregl.AttributionControl({
         customAttribution: 'Daten: <a href="https://www.toll-collect.de" target="_blank" rel="noopener">Toll Collect</a> via Mobilithek',
       }),

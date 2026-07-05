@@ -247,6 +247,33 @@ export default function TablePage() {
         <span className="ml-auto text-xs text-gray-400">
           {loading ? 'Lade…' : `${displayed.length} von ${rows.length} Stationen`}
         </span>
+
+        <button
+          onClick={() => {
+            const header = activeCols.map(c => `"${c.label}"`).join(',')
+            const rowLines = displayed.map(row =>
+              activeCols.map(col => {
+                const v = col.get(row)
+                if (v == null) return ''
+                const s = String(v)
+                return s.includes(',') || s.includes('"') || s.includes('\n')
+                  ? `"${s.replace(/"/g, '""')}"` : s
+              }).join(',')
+            )
+            const csv = [header, ...rowLines].join('\r\n')
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `rastmonitor_${mode}_${new Date().toISOString().slice(0,10)}.csv`
+            a.click()
+            URL.revokeObjectURL(url)
+          }}
+          disabled={displayed.length === 0}
+          className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+        >
+          ⬇ CSV
+        </button>
       </header>
 
       {/* Filter hint */}
