@@ -2,6 +2,7 @@
 Prune old data to keep storage bounded:
   - Raw parking_status rows older than 72 hours
   - Daily aggregates older than 6 months
+  - Page view counts older than 365 days
 
 Runs at 02:30 daily — after aggregate_daily.py has processed yesterday's raw rows.
 """
@@ -33,6 +34,13 @@ def prune(conn):
                 WHERE day < now() - INTERVAL '6 months'
             """)
             log.info("Deleted %d daily aggregate rows older than 6 months.", cur.rowcount)
+
+            # Page views: keep last 365 days
+            cur.execute("""
+                DELETE FROM page_views
+                WHERE day < CURRENT_DATE - INTERVAL '365 days'
+            """)
+            log.info("Deleted %d page_view rows older than 365 days.", cur.rowcount)
 
 
 def main():
