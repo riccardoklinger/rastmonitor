@@ -2,6 +2,9 @@ import type { Metadata } from 'next'
 import './globals.css'
 import pool from '@/lib/db'
 
+// Force this layout to run server-side on every request (not cached at build time)
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'rastmonitor',
   description: 'Parkplatz-Auslastung Deutschland',
