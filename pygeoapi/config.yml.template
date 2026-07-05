@@ -1,0 +1,158 @@
+server:
+  bind:
+    host: 0.0.0.0
+    port: 80
+  url: ${PYGEOAPI_BASE_URL}
+  mimetype: application/json; charset=UTF-8
+  encoding: utf-8
+  gzip: true
+  languages:
+    - de-DE
+    - en-US
+  cors: true
+  pretty_print: true
+  limits:
+    default_items: 100
+    max_items: 10000
+  map:
+    url: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+    attribution: © OpenStreetMap contributors
+
+logging:
+  level: WARNING
+
+metadata:
+  identification:
+    title:
+      de: Rastmonitor – LKW-Parkplatz Belegungsdaten (OGC API Features)
+      en: Rastmonitor – Truck Parking Occupancy Data (OGC API Features)
+    description:
+      de: "Echtzeitdaten und historische Belegungsdaten von Autobahn-LKW-Parkplätzen in Deutschland. Datenquelle: Toll Collect via Mobilithek (DATEX II)."
+      en: "Real-time and historical occupancy data for motorway truck parking sites in Germany. Data source: Toll Collect via Mobilithek (DATEX II)."
+    keywords:
+      - truck parking
+      - LKW-Parken
+      - Autobahn
+      - Germany
+      - occupancy
+      - DATEX II
+    keywords_type: theme
+    terms_of_service: https://www.mobilithek.info/nutzungsbedingungen
+    url: https://rast-monitor.de
+  license:
+    name: Datenlizenz Deutschland – Namensnennung – Version 2.0
+    url: https://www.govdata.de/dl-de/by-2-0
+  provider:
+    name: Rastmonitor
+    url: https://rast-monitor.de
+  contact:
+    name: Rastmonitor
+    email: info@rast-monitor.de
+
+resources:
+
+  parking_live:
+    type: collection
+    title:
+      de: LKW-Parkplätze – Live-Belegung
+      en: Truck Parking Sites – Live Occupancy
+    description:
+      de: Aktuelle Belegung aller erfassten Autobahn-LKW-Parkplätze. Ein Datensatz pro Stellplatz.
+      en: Current occupancy of all monitored motorway truck parking sites. One feature per site.
+    keywords:
+      - live
+      - occupancy
+      - truck parking
+    links: []
+    extents:
+      spatial:
+        bbox: [5.87, 47.27, 15.04, 55.06]
+        crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+    providers:
+      - type: feature
+        name: PostgreSQL
+        data:
+          host: db
+          port: 5432
+          dbname: ${POSTGRES_DB}
+          user: ${POSTGRES_USER}
+          password: ${POSTGRES_PASSWORD}
+          search_path:
+            - public
+        id_field: id
+        table: v_parking_live
+        geom_field: geom
+
+  parking_72h:
+    type: collection
+    title:
+      de: LKW-Parkplätze – Rohdaten (72 h)
+      en: Truck Parking Sites – Raw Readings (72 h)
+    description:
+      de: Alle Belegungsmessungen der letzten 72 Stunden (ein Datensatz pro Messintervall pro Stellplatz). Zeitfilter über den datetime-Parameter möglich, z. B. ?datetime=2024-06-01T14:00:00Z/2024-06-01T14:30:00Z
+      en: All occupancy readings for the last 72 hours (one feature per fetch cycle per site). Filter by time using the datetime parameter, e.g. ?datetime=2024-06-01T14:00:00Z/2024-06-01T14:30:00Z
+    keywords:
+      - 72h
+      - time series
+      - raw readings
+    links: []
+    extents:
+      spatial:
+        bbox: [5.87, 47.27, 15.04, 55.06]
+        crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+      temporal:
+        begin: null
+        end: null
+        trs: http://www.opengis.net/def/uom/ISO-8601/0/Gregorian
+    providers:
+      - type: feature
+        name: PostgreSQL
+        data:
+          host: db
+          port: 5432
+          dbname: ${POSTGRES_DB}
+          user: ${POSTGRES_USER}
+          password: ${POSTGRES_PASSWORD}
+          search_path:
+            - public
+        id_field: id
+        table: v_parking_72h
+        geom_field: geom
+        time_field: fetched_at
+
+  parking_daily:
+    type: collection
+    title:
+      de: LKW-Parkplätze – Tagesstatistiken (90 Tage)
+      en: Truck Parking Sites – Daily Statistics (90 days)
+    description:
+      de: Tägliche Belegungsstatistiken (Min/Mittel/Median/Max) pro Stellplatz für die letzten 90 Tage. Zeitfilter über den datetime-Parameter, z. B. ?datetime=2024-06-01
+      en: Daily occupancy statistics (min/mean/median/max) per site for the last 90 days. Filter by date using the datetime parameter, e.g. ?datetime=2024-06-01
+    keywords:
+      - 90 days
+      - daily statistics
+      - aggregated
+    links: []
+    extents:
+      spatial:
+        bbox: [5.87, 47.27, 15.04, 55.06]
+        crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+      temporal:
+        begin: null
+        end: null
+        trs: http://www.opengis.net/def/uom/ISO-8601/0/Gregorian
+    providers:
+      - type: feature
+        name: PostgreSQL
+        data:
+          host: db
+          port: 5432
+          dbname: ${POSTGRES_DB}
+          user: ${POSTGRES_USER}
+          password: ${POSTGRES_PASSWORD}
+          search_path:
+            - public
+        id_field: id
+        table: v_parking_daily
+        geom_field: geom
+        time_field: day

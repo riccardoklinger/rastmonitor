@@ -45,6 +45,22 @@ services:
     volumes:
       - ${CERT_P12}:/certs/client.p12:ro
 
+  pygeoapi:
+    build: ./pygeoapi
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PYGEOAPI_BASE_URL: ${PYGEOAPI_BASE_URL:-https://rast-monitor.de/ogcapi}
+      PYGEOAPI_CONFIG: /pygeoapi/local.config.yml
+      PYGEOAPI_OPENAPI: /pygeoapi/local.openapi.yml
+    ports:
+      - "127.0.0.1:9000:80"
+
   web:
     build:
       context: ./web

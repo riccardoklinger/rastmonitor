@@ -211,6 +211,15 @@ server {
         proxy_set_header Host $host;
         proxy_cache_bypass $http_upgrade;
     }
+
+    # OGC API Features (pygeoapi)
+    location /ogcapi/ {
+        proxy_pass http://127.0.0.1:9000/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
 }
 ```
 
@@ -262,7 +271,53 @@ gunzip -c /home/ricckli/backups/rastmonitor/2026-06-28.dump.gz | \
 
 ---
 
-## 10. Useful maintenance commands
+## 10. OGC API Features (pygeoapi)
+
+The `pygeoapi` service exposes three OGC API Features collections at `https://rast-monitor.de/ogcapi/`.
+
+### One-time DB migration (run after first deployment or upgrade)
+
+```bash
+docker compose cp db/migrate_add_ogcapi_views.sql db:/tmp/
+docker compose exec db psql -U rastmonitor -d rastmonitor -f /tmp/migrate_add_ogcapi_views.sql
+```
+
+### Available collections
+
+| Collection | URL | Description |
+|---|---|---|
+| Landing page | `/ogcapi/` | API root |
+| Conformance | `/ogcapi/conformance` | OGC conformance classes |
+| Collections | `/ogcapi/collections` | List all three collections |
+| **Live** | `/ogcapi/collections/parking_live/items` | Current occupancy, 1 row/site |
+| **72h** | `/ogcapi/collections/parking_72h/items` | All readings, last 72 h |
+| **Daily** | `/ogcapi/collections/parking_daily/items` | Daily stats, last 90 days |
+
+### Example queries
+
+```bash
+# Get all live data (first 100 sites)
+curl "https://rast-monitor.de/ogcapi/collections/parking_live/items?f=json"
+
+# 72h readings for a specific 30-minute window
+curl "https://rast-monitor.de/ogcapi/collections/parking_72h/items?datetime=2024-06-01T13:45:00Z/2024-06-01T14:15:00Z&f=json"
+
+# Daily stats for a specific day
+curl "https://rast-monitor.de/ogcapi/collections/parking_daily/items?datetime=2024-06-01&f=json"
+
+# Filter by Autobahn (property filter)
+curl "https://rast-monitor.de/ogcapi/collections/parking_live/items?road_identifier=A2&f=json"
+```
+
+### Add PYGEOAPI_BASE_URL to .env
+
+```
+PYGEOAPI_BASE_URL=https://rast-monitor.de/ogcapi
+```
+
+---
+
+## 11. Useful maintenance commands
 
 ```bash
 # View all container logs
@@ -322,6 +377,12 @@ Martin (internal only, not exposed to host)
 
 Ingestion (cron)
    └── Mobilithek API (mTLS via .p12) → PostgreSQL
+
+pygeoapi (internal, port 9000)
+   └── /ogcapi/ → OGC API Features (3 collections)
+       ├── parking_live   — live occupancy (1 row/site)
+       ├── parking_72h    — raw readings, last 72 h (filterable by datetime)
+       └── parking_daily  — daily stats, last 90 days (filterable by datetime)
 ```
 
 > All browser traffic stays on your domain — no external tile CDN, no external API calls from the client.
