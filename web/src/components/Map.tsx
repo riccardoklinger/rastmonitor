@@ -31,6 +31,7 @@ export interface SiteProperties {
 
 export interface MapHandle {
   flyTo: (lng: number, lat: number, zoom?: number) => void
+  setRoadFilter: (road: string) => void
 }
 
 interface MapProps {
@@ -42,6 +43,21 @@ interface MapProps {
 // Self-hosted by default (/api/map-style → Martin tile server via Next.js proxy).
 // For local dev without tiles, set NEXT_PUBLIC_MAP_STYLE to a remote style URL.
 const MAP_STYLE = process.env.NEXT_PUBLIC_MAP_STYLE ?? '/api/map-style'
+
+function applyRoadFilter(map: maplibregl.Map, road: string) {
+  if (!road.trim()) {
+    map.setFilter('parking-circles', null)
+    if (map.getLayer('parking-circles-dim'))
+      map.setLayoutProperty('parking-circles-dim', 'visibility', 'none')
+  } else {
+    const val = road.trim().toUpperCase()
+    if (map.getLayer('parking-circles-dim')) {
+      map.setLayoutProperty('parking-circles-dim', 'visibility', 'visible')
+      map.setFilter('parking-circles-dim', ['!=', ['upcase', ['coalesce', ['get', 'road_identifier'], '']], val])
+    }
+    map.setFilter('parking-circles', ['==', ['upcase', ['coalesce', ['get', 'road_identifier'], '']], val])
+  }
+}
 
 function formatTs(iso: string | null): string {
   if (!iso) return '–'
@@ -95,15 +111,22 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
   { onSiteSelect, dataUrl = '/api/sites', metricLabel = 'Auslastung' },
   ref
 ) {
-  const containerRef   = useRef<HTMLDivElement>(null)
-  const mapRef         = useRef<maplibregl.Map | null>(null)
-  const dataUrlRef     = useRef(dataUrl)
-  const metricLabelRef = useRef(metricLabel)
+  const containerRef    = useRef<HTMLDivElement>(null)
+  const mapRef          = useRef<maplibregl.Map | null>(null)
+  const dataUrlRef      = useRef(dataUrl)
+  const metricLabelRef  = useRef(metricLabel)
+  const roadFilterRef   = useRef('')
 
   useImperativeHandle(ref, () => ({
     flyTo: (lng, lat, zoom = 13) => {
       mapRef.current?.flyTo({ center: [lng, lat], zoom, essential: true })
     },
+    setRoadFilter: (road: string) => {
+        const map = mapRef.current
+        if (!map) return
+        roadFilterRef.current = road
+        applyRoadFilter(map, road)
+      },
   }))
 
   // Keep refs in sync
@@ -113,7 +136,11 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
   useEffect(() => {
     dataUrlRef.current = dataUrl
     const source = mapRef.current?.getSource('parking') as maplibregl.GeoJSONSource | undefined
-    source?.setData(dataUrl)
+    if (source) {
+      source.setData(dataUrl)
+      // Re-apply road filter after data swap (new GeoJSON may have road_identifier)
+      if (roadFilterRef.current) applyRoadFilter(mapRef.current!, roadFilterRef.current)
+    }
   }, [dataUrl])
 
   useEffect(() => {
@@ -153,6 +180,22 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
           'circle-opacity': 0.9,
         },
       })
+
+      // Dim layer — shown for non-matching points when a road filter is active
+      map.addLayer({
+        id: 'parking-circles-dim',
+        type: 'circle',
+        source: 'parking',
+        layout: { visibility: 'none' },
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 5, 4, 10, 8],
+          'circle-color': '#9ca3af',
+          'circle-stroke-width': 1,
+          'circle-stroke-color': '#ffffff',
+          'circle-opacity': 0.25,
+          'circle-stroke-opacity': 0.25,
+        },
+      }, 'parking-circles') // insert below main layer so main layer renders on top
 
       // Pointer cursor on hover
       map.on('mouseenter', 'parking-circles', () => {

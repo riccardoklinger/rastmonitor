@@ -19,6 +19,7 @@ services:
 
   martin:
     image: maplibre/martin:latest
+    platform: linux/amd64
     restart: unless-stopped
     volumes:
       - ./tiles:/tiles:ro

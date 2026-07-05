@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
       `SELECT DISTINCT ON (ps.datex_id)
          ps.datex_id,
          ps.name,
+         ps.road_identifier,
          ps.total_spaces,
          ST_X(ps.location)   AS longitude,
          ST_Y(ps.location)   AS latitude,
@@ -47,6 +48,7 @@ export async function GET(req: NextRequest) {
         properties: {
           datex_id: r.datex_id,
           name: r.name,
+          road_identifier: r.road_identifier ?? null,
           total_spaces: r.total_spaces,
           vacant_spaces: r.vacant_spaces !== null ? Number(r.vacant_spaces) : null,
           occupancy_pct: r.occupancy_pct !== null ? Number(r.occupancy_pct) : null,
