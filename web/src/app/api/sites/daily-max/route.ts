@@ -32,6 +32,7 @@ export async function GET(req: NextRequest) {
       `SELECT
          ps.datex_id,
          ps.name,
+         ps.official_spaces,
          ps.total_spaces,
          ps.road_identifier,
          ST_X(ps.location)  AS longitude,
@@ -54,6 +55,7 @@ export async function GET(req: NextRequest) {
         properties: {
           datex_id:     r.datex_id,
           name:         r.name,
+          official_spaces: r.official_spaces !== null ? Number(r.official_spaces) : null,
           total_spaces: r.total_spaces,
           road_identifier: r.road_identifier ?? null,
           occupancy_pct: r.occupancy_pct !== null ? Number(r.occupancy_pct) : null,

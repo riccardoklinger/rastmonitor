@@ -19,7 +19,9 @@ interface LiveRow {
   location_type: string | null
   certified_secure: boolean | null
   occupancy_detection_type: string | null
+  official_spaces: number | null
   total_spaces: number | null
+  tolerated_spaces: number | null
   occupancy_pct: number | null
   opening_status: string | null
   fetched_at: string | null
@@ -31,7 +33,9 @@ interface AggRow {
   road_identifier: string | null
   road_destination: string | null
   operator_name: string | null
+  official_spaces: number | null
   total_spaces: number | null
+  tolerated_spaces: number | null
   min_occ: number | null
   mean_occ: number | null
   max_occ: number | null
@@ -55,7 +59,9 @@ const COLUMNS: ColDef[] = [
   { key: 'road_identifier',         label: 'Autobahn',         type: 'exact',  modes: ['live','history','dailymax'], get: r => (r as LiveRow).road_identifier },
   { key: 'road_destination',        label: 'Richtung',         type: 'string', modes: ['live','history','dailymax'], get: r => (r as LiveRow).road_destination },
   { key: 'operator_name',           label: 'Betreiber',        type: 'string', modes: ['live','history','dailymax'], get: r => (r as LiveRow).operator_name },
-  { key: 'total_spaces',            label: 'Stellplätze',      type: 'number', modes: ['live','history','dailymax'], get: r => r.total_spaces },
+  { key: 'official_spaces',         label: 'StVO-konform',     type: 'number', modes: ['live','history','dailymax'], get: r => (r as LiveRow).official_spaces },
+  { key: 'tolerated_spaces',        label: 'Geduldet',         type: 'number', modes: ['live','history','dailymax'], get: r => (r as LiveRow).tolerated_spaces },
+  { key: 'total_spaces',            label: 'Gesamt',           type: 'number', modes: ['live','history','dailymax'], get: r => r.total_spaces },
   { key: 'occupancy_pct',           label: 'Auslastung %',     type: 'number', modes: ['live'],                     get: r => (r as LiveRow).occupancy_pct },
   { key: 'min_occ',                 label: 'Min %',            type: 'number', modes: ['history','dailymax'],        get: r => (r as AggRow).min_occ },
   { key: 'mean_occ',                label: 'Mittel %',         type: 'number', modes: ['history','dailymax'],        get: r => (r as AggRow).mean_occ },
@@ -154,7 +160,16 @@ export default function TablePage() {
       if (mode === 'live') {
         // GeoJSON → extract properties
         const fc = data as GeoJSON.FeatureCollection
-        return fc.features.map(f => f.properties as LiveRow)
+        return fc.features.map((f) => {
+          const p = f.properties as LiveRow
+          return {
+            ...p,
+            tolerated_spaces:
+              p.total_spaces !== null && p.official_spaces !== null
+                ? Math.max(0, p.total_spaces - p.official_spaces)
+                : null,
+          }
+        })
       }
       return data as AggRow[]
     }

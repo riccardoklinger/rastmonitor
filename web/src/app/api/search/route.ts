@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
       `SELECT
          ps.datex_id,
          ps.name,
+        ps.official_spaces,
          ps.total_spaces,
          ST_X(ps.location) AS longitude,
          ST_Y(ps.location) AS latitude,
@@ -32,6 +33,7 @@ export async function GET(req: NextRequest) {
       result.rows.map(r => ({
         datex_id:    r.datex_id,
         name:        r.name,
+        official_spaces: r.official_spaces !== null ? Number(r.official_spaces) : null,
         total_spaces: r.total_spaces,
         longitude:   Number(r.longitude),
         latitude:    Number(r.latitude),

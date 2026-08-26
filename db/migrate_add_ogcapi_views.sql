@@ -9,7 +9,13 @@ SELECT
     ps.road_identifier,
     ps.road_destination,
     ps.operator_name,
+    ps.official_spaces,
     ps.total_spaces,
+    CASE
+        WHEN ps.total_spaces IS NOT NULL AND ps.official_spaces IS NOT NULL
+            THEN GREATEST(ps.total_spaces - ps.official_spaces, 0)
+        ELSE NULL
+    END                         AS tolerated_spaces,
     psl.occupancy_pct,
     psl.opening_status,
     psl.site_status,
@@ -30,7 +36,13 @@ SELECT
     ps.name,
     ps.road_identifier,
     ps.road_destination,
+    ps.official_spaces,
     ps.total_spaces,
+    CASE
+        WHEN ps.total_spaces IS NOT NULL AND ps.official_spaces IS NOT NULL
+            THEN GREATEST(ps.total_spaces - ps.official_spaces, 0)
+        ELSE NULL
+    END                         AS tolerated_spaces,
     pst.occupancy_pct,
     pst.opening_status,
     pst.site_status,
@@ -53,7 +65,13 @@ SELECT
     ps.name,
     ps.road_identifier,
     ps.road_destination,
+    ps.official_spaces,
     ps.total_spaces,
+    CASE
+        WHEN ps.total_spaces IS NOT NULL AND ps.official_spaces IS NOT NULL
+            THEN GREATEST(ps.total_spaces - ps.official_spaces, 0)
+        ELSE NULL
+    END                         AS tolerated_spaces,
     d.day,
     d.min_occ,
     d.mean_occ,

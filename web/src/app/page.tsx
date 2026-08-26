@@ -37,11 +37,12 @@ export default function Home() {
     setDailyMetric(m)
   }, [])
 
-  const handleSearchSelect = useCallback((result: { longitude: number; latitude: number; datex_id: string; name: string; total_spaces: number; occupancy_pct: number | null }) => {
+  const handleSearchSelect = useCallback((result: { longitude: number; latitude: number; datex_id: string; name: string; official_spaces: number | null; total_spaces: number; occupancy_pct: number | null }) => {
     mapRef.current?.flyTo(result.longitude, result.latitude, 14)
     setSelectedSite({
       datex_id: result.datex_id,
       name: result.name,
+      official_spaces: result.official_spaces,
       total_spaces: result.total_spaces,
       vacant_spaces: null,
       is_synthetic: false,

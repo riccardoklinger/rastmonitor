@@ -2,6 +2,7 @@
 -- Safe to run multiple times (uses IF NOT EXISTS / DO blocks)
 
 ALTER TABLE parking_sites
+  ADD COLUMN IF NOT EXISTS official_spaces         INTEGER,
   ADD COLUMN IF NOT EXISTS operator_name          TEXT,
   ADD COLUMN IF NOT EXISTS road_identifier        TEXT,
   ADD COLUMN IF NOT EXISTS road_destination       TEXT,

@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS parking_sites (
     datex_id        TEXT PRIMARY KEY,
     version         TEXT,
     name            TEXT,
+    official_spaces INTEGER,
     total_spaces    INTEGER,
     address         TEXT,
     location        geometry(Point, 4326) NOT NULL,

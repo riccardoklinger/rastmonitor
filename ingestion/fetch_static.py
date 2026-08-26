@@ -47,6 +47,15 @@ def _int(el, tag):
     return int(val) if val is not None else None
 
 
+def _int_deep(el, tag):
+    """Return int value of first matching descendant element, or None."""
+    child = el.find(f".//{{{NS}}}{tag}")
+    if child is None or not child.text:
+        return None
+    val = child.text.strip()
+    return int(val) if val else None
+
+
 def fetch_xml():
     log.info("Fetching static data from %s", ENDPOINT)
     resp = get(
@@ -162,7 +171,10 @@ def parse_records(root):
             continue
 
         name = parse_name(parking_record)
-        total_spaces = _int(parking_record, "parkingNumberOfSpaces")
+        official_spaces = _int_deep(parking_record, "parkingNumberOfSpaces")
+        total_spaces = _int_deep(parking_record, "fullIncreasing")
+        if total_spaces is None:
+            total_spaces = official_spaces
         lat, lon = parse_coordinates(parking_record)
         extended = parse_extended(parking_record)
 
@@ -174,6 +186,7 @@ def parse_records(root):
             "datex_id": datex_id,
             "version": version,
             "name": name,
+            "official_spaces": official_spaces,
             "total_spaces": total_spaces,
             "lat": lat,
             "lon": lon,
@@ -190,7 +203,7 @@ def upsert(records):
 
     sql = """
         INSERT INTO parking_sites (
-            datex_id, version, name, total_spaces, location,
+            datex_id, version, name, official_spaces, total_spaces, location,
             operator_name, road_identifier, road_destination,
             free_of_charge, usage_scenario, location_type,
             certified_secure, occupancy_detection_type
@@ -199,6 +212,7 @@ def upsert(records):
         ON CONFLICT (datex_id) DO UPDATE SET
             version                  = EXCLUDED.version,
             name                     = EXCLUDED.name,
+            official_spaces          = EXCLUDED.official_spaces,
             total_spaces             = EXCLUDED.total_spaces,
             location                 = EXCLUDED.location,
             operator_name            = EXCLUDED.operator_name,
@@ -216,6 +230,7 @@ def upsert(records):
             r["datex_id"],
             r["version"],
             r["name"],
+            r["official_spaces"],
             r["total_spaces"],
             f"SRID=4326;POINT({r['lon']} {r['lat']})",
             r.get("operator_name"),

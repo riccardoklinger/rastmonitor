@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 interface SearchResult {
   datex_id: string
   name: string
+  official_spaces: number | null
   total_spaces: number
   longitude: number
   latitude: number

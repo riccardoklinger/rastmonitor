@@ -20,6 +20,7 @@ const OCCUPANCY_COLOR: any = [
 export interface SiteProperties {
   datex_id: string
   name: string
+  official_spaces: number | null | undefined
   total_spaces: number
   vacant_spaces: number | null | undefined
   is_synthetic: boolean
@@ -84,12 +85,23 @@ function buildPopupHtml(props: SiteProperties, metricLabel: string): string {
   const pctStr = pct != null ? `${Number(pct).toFixed(1)} %` : 'Keine Daten'
   const synth = props.is_synthetic ? '<span style="font-size:10px;color:#6b7280;font-style:italic"> · synthetisch</span>' : ''
 
+  const officialSpaces = props.official_spaces ?? null
+  const totalSpaces = props.total_spaces ?? null
+  const toleratedSpaces =
+    officialSpaces != null && totalSpaces != null
+      ? Math.max(0, totalSpaces - officialSpaces)
+      : null
+
   // vacant_spaces from feed, or estimate from occupancy_pct × total_spaces
-  const spacesStr = `${props.total_spaces} Stellplätze gesamt${
+  const spacesStr = `${
+    officialSpaces != null ? `${officialSpaces} StVO-konform · ` : ''
+  }${
+    toleratedSpaces != null ? `${toleratedSpaces} geduldet · ` : ''
+  }${totalSpaces ?? '–'} gesamt${
     props.vacant_spaces != null
       ? ` · ${props.vacant_spaces} frei`
-      : (pct != null && props.total_spaces)
-        ? ` · ~${Math.round(props.total_spaces * (1 - pct / 100))} frei`
+      : (pct != null && totalSpaces)
+        ? ` · ~${Math.round(totalSpaces * (1 - pct / 100))} frei`
         : ''
   }`
 

@@ -134,6 +134,12 @@ export default function SitePanel({ site, onClose }: Props) {
 
   const rawChartH  = expanded ? 260 : 100
   const dailyChartH = expanded ? 340 : 150
+  const officialSpaces = site.official_spaces ?? null
+  const totalSpaces = site.total_spaces ?? null
+  const toleratedSpaces =
+    officialSpaces != null && totalSpaces != null
+      ? Math.max(0, totalSpaces - officialSpaces)
+      : null
 
   return (
     <>
@@ -144,7 +150,9 @@ export default function SitePanel({ site, onClose }: Props) {
           <div>
             <h2 className={`font-semibold leading-tight ${expanded ? 'text-lg' : 'text-sm'}`}>{site.name ?? site.datex_id}</h2>
             <p className="text-xs text-gray-500 mt-0.5">
-              {site.total_spaces ? `${site.total_spaces} Stellplätze` : ''}
+              {officialSpaces != null ? `${officialSpaces} StVO-konform` : ''}
+              {toleratedSpaces != null ? `${officialSpaces != null ? ' · ' : ''}${toleratedSpaces} geduldet` : ''}
+              {totalSpaces != null ? `${officialSpaces != null || toleratedSpaces != null ? ' · ' : ''}${totalSpaces} gesamt` : ''}
             </p>
           </div>
           <div className="flex items-center gap-1 ml-2">
