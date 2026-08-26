@@ -90,7 +90,7 @@ def _bool(el, tag):
     val = _text(el, tag)
     if val is None:
         return None
-    return val.lower() == 'true'
+    return val.lower() == "true"
 
 
 def parse_extended(parking_record_el):
@@ -100,9 +100,11 @@ def parse_extended(parking_record_el):
     # Operator name
     operator_el = parking_record_el.find(f"{{{NS}}}operator")
     if operator_el is not None:
-        attrs['operator_name'] = _multilingual_value(operator_el, 'contactOrganisationName')
+        attrs["operator_name"] = _multilingual_value(
+            operator_el, "contactOrganisationName"
+        )
     else:
-        attrs['operator_name'] = None
+        attrs["operator_name"] = None
 
     # Road info from first parkingAccess/primaryRoad
     primary_road = parking_record_el.find(f".//{{{NS}}}primaryRoad")
@@ -110,41 +112,53 @@ def parse_extended(parking_record_el):
         road_id_el = primary_road.find(f".//{{{NS}}}roadIdentifier")
         if road_id_el is not None:
             v = road_id_el.find(f".//{{{NS}}}value")
-            attrs['road_identifier'] = v.text.strip() if v is not None and v.text else None
+            attrs["road_identifier"] = (
+                v.text.strip() if v is not None and v.text else None
+            )
         else:
-            attrs['road_identifier'] = None
+            attrs["road_identifier"] = None
 
         dest_el = primary_road.find(f".//{{{NS}}}roadDestination")
         if dest_el is not None:
             v = dest_el.find(f".//{{{NS}}}value")
-            attrs['road_destination'] = v.text.strip() if v is not None and v.text else None
+            attrs["road_destination"] = (
+                v.text.strip() if v is not None and v.text else None
+            )
         else:
-            attrs['road_destination'] = None
+            attrs["road_destination"] = None
     else:
-        attrs['road_identifier'] = None
-        attrs['road_destination'] = None
+        attrs["road_identifier"] = None
+        attrs["road_destination"] = None
 
     # Tariff
     tariff_el = parking_record_el.find(f"{{{NS}}}tariffsAndPayment")
-    attrs['free_of_charge'] = _bool(tariff_el, 'freeOfCharge') if tariff_el is not None else None
+    attrs["free_of_charge"] = (
+        _bool(tariff_el, "freeOfCharge") if tariff_el is not None else None
+    )
 
     # Usage scenario — the innermost parkingUsageScenario has the text value
     for scenario_el in parking_record_el.iter(f"{{{NS}}}parkingUsageScenario"):
         if scenario_el.text and scenario_el.text.strip():
-            attrs['usage_scenario'] = scenario_el.text.strip()
+            attrs["usage_scenario"] = scenario_el.text.strip()
             break
     else:
-        attrs['usage_scenario'] = None
+        attrs["usage_scenario"] = None
 
     # Location type (motorway / layby / etc.)
-    attrs['location_type'] = _text(parking_record_el, 'interUrbanParkingSiteLocation')
+    attrs["location_type"] = _text(parking_record_el, "interUrbanParkingSiteLocation")
 
     # Security
     security_el = parking_record_el.find(f"{{{NS}}}parkingStandardsAndSecurity")
-    attrs['certified_secure'] = _bool(security_el, 'certifiedSecureParking') if security_el is not None else None
+    attrs["certified_secure"] = (
+        _bool(security_el, "certifiedSecureParking")
+        if security_el is not None
+        else None
+    )
 
     # Occupancy detection type
-    attrs['occupancy_detection_type'] = _text(parking_record_el, 'parkingOccupanyDetectionType')
+    attrs["occupancy_detection_type"] = _text(
+        parking_record_el, "parkingOccupanyDetectionType"
+    )
 
     return attrs
 
@@ -182,16 +196,18 @@ def parse_records(root):
             log.warning("Skipping record %s: no coordinates", datex_id)
             continue
 
-        records.append({
-            "datex_id": datex_id,
-            "version": version,
-            "name": name,
-            "official_spaces": official_spaces,
-            "total_spaces": total_spaces,
-            "lat": lat,
-            "lon": lon,
-            **extended,
-        })
+        records.append(
+            {
+                "datex_id": datex_id,
+                "version": version,
+                "name": name,
+                "official_spaces": official_spaces,
+                "total_spaces": total_spaces,
+                "lat": lat,
+                "lon": lon,
+                **extended,
+            }
+        )
 
     return records
 
@@ -250,6 +266,7 @@ def upsert(records):
         with conn:
             with conn.cursor() as cur:
                 from psycopg2.extras import execute_values
+
                 execute_values(cur, sql, rows)
         log.info("Upserted %d parking sites.", len(rows))
     finally:
