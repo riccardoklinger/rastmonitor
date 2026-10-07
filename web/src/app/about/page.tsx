@@ -108,7 +108,7 @@ export default function About() {
         </section>
 
         <footer className="pt-4 border-t border-gray-100 flex justify-between text-xs text-gray-400">
-          <span>RastMonitor · Riccardo Klinger</span>
+          <span>RastMonitor · Riccardo Schuster</span>
           <a href="/impressum" className="hover:underline">Impressum</a>
         </footer>
       </div>

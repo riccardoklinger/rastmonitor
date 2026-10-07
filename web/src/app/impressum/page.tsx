@@ -8,7 +8,7 @@ export default function Impressum() {
 
         <section className="space-y-1 text-gray-700">
           <h2 className="font-semibold text-gray-900">Angaben gemäß § 5 TMG</h2>
-          <p>Riccardo Klinger</p>
+          <p>Riccardo Schuster</p>
           <p>Gnomenplatz 14</p>
           <p>13088 Berlin</p>
         </section>
@@ -17,8 +17,8 @@ export default function Impressum() {
           <h2 className="font-semibold text-gray-900">Kontakt</h2>
           <p>
             E-Mail:{' '}
-            <a href="mailto:riccardo.klinger@gmail.com" className="text-blue-600 hover:underline">
-              riccardo.klinger@gmail.com
+            <a href="mailto:riccardo.schuster@gmail.com" className="text-blue-600 hover:underline">
+              riccardo.schuster@gmail.com
             </a>
           </p>
         </section>
