@@ -78,43 +78,25 @@ export default function Home() {
         <SitePanel site={selectedSite} onClose={() => setSelectedSite(null)} />
       )}
 
-      {/* Footer links */}
-      <div className="absolute top-3 right-16 z-10 flex gap-2 text-xs">
-        <a
-          href="/table"
-          className="px-2 py-1 bg-white/90 rounded shadow text-gray-600 hover:text-gray-900 hover:bg-white transition"
+      {/* Navigation menu above the map controls */}
+      <details className="group absolute top-3 right-2 z-20 text-sm">
+        <summary
+          aria-label="Navigation öffnen"
+          className="flex h-10 w-10 cursor-pointer list-none flex-col items-center justify-center gap-1 rounded bg-white/95 shadow-md text-gray-700 hover:bg-white [&::-webkit-details-marker]:hidden"
         >
-          Tabelle
-        </a>
-        <a
-          href="https://github.com/sponsors/riccardoklinger"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="px-2 py-1 bg-white/90 rounded shadow text-gray-600 hover:text-gray-900 hover:bg-white transition"
-        >
-          ♥ Sponsor
-        </a>
-        <a
-          href="/about"
-          className="px-2 py-1 bg-white/90 rounded shadow text-gray-600 hover:text-gray-900 hover:bg-white transition"
-        >
-          Über
-        </a>
-        <a
-          href="/impressum"
-          className="px-2 py-1 bg-white/90 rounded shadow text-gray-600 hover:text-gray-900 hover:bg-white transition"
-        >
-          Impressum
-        </a>
-        <a
-          href="https://github.com/riccardoklinger/rastmonitor"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="px-2 py-1 bg-white/90 rounded shadow text-gray-600 hover:text-gray-900 hover:bg-white transition"
-        >
-          GitHub
-        </a>
-      </div>
+          <span className="h-0.5 w-5 rounded bg-current" />
+          <span className="h-0.5 w-5 rounded bg-current" />
+          <span className="h-0.5 w-5 rounded bg-current" />
+        </summary>
+        <nav aria-label="Hauptnavigation" className="absolute right-0 mt-2 flex min-w-40 flex-col overflow-hidden rounded bg-white shadow-lg ring-1 ring-black/10">
+          <a href="/table" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">Tabelle</a>
+          <a href="https://rast-monitor.de/ogcapi/" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">API</a>
+          <a href="https://github.com/sponsors/riccardoklinger" target="_blank" rel="noopener noreferrer" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">♥ Sponsor</a>
+          <a href="/about" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">Über</a>
+          <a href="/impressum" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">Impressum</a>
+          <a href="https://github.com/riccardoklinger/rastmonitor" target="_blank" rel="noopener noreferrer" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">GitHub</a>
+        </nav>
+      </details>
 
       {/* Search box — top left */}
       <div className="absolute top-3 left-4 z-10">
