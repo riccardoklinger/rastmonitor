@@ -39,7 +39,6 @@ function RawTooltip({ active, payload, label }: any) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function DailyTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
-  const synthetic = payload[0]?.payload?.synthetic
   return (
     <div className="bg-white border border-gray-200 rounded shadow-sm px-2 py-1 text-xs">
       <p className="font-medium text-gray-700">{label}</p>
@@ -48,7 +47,6 @@ function DailyTooltip({ active, payload, label }: any) {
           {p.name}: {p.value !== null ? `${Number(p.value).toFixed(1)} %` : '–'}
         </p>
       ))}
-      {synthetic && <p className="text-gray-400 italic mt-0.5">synthetic</p>}
     </div>
   )
 }
@@ -124,9 +122,7 @@ export default function SitePanel({ site, onClose }: Props) {
     mean: d.mean_occ !== null ? Number(d.mean_occ) : null,
     max: d.max_occ !== null ? Number(d.max_occ) : null,
     min: d.min_occ !== null ? Number(d.min_occ) : null,
-    synthetic: d.is_synthetic,
   }))
-  const dailyHasSynthetic = daily.some((d) => d.is_synthetic)
 
   const panelClass = expanded
     ? 'fixed inset-0 z-50 bg-white flex flex-col overflow-y-auto'
@@ -229,7 +225,6 @@ export default function SitePanel({ site, onClose }: Props) {
               <p className="text-xs text-gray-400">Keine Daten</p>
             ) : (
               <div className="relative">
-                {dailyHasSynthetic && <SyntheticBadge />}
                 <ResponsiveContainer width="100%" height={dailyChartH}>
                   <LineChart data={dailyData} margin={{ top: 4, right: 0, left: -20, bottom: 0 }}>
                     <XAxis dataKey="day" tick={{ fontSize: 9 }} interval={Math.floor(dailyData.length / 5)} />
