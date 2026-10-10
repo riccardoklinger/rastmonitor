@@ -126,7 +126,7 @@ export default function SitePanel({ site, onClose }: Props) {
 
   const panelClass = expanded
     ? 'fixed inset-0 z-50 bg-white flex flex-col overflow-y-auto'
-    : 'absolute top-0 right-0 h-full w-80 bg-white shadow-xl z-10 flex flex-col overflow-y-auto'
+    : 'absolute top-0 right-0 h-full w-80 bg-white shadow-xl z-30 flex flex-col overflow-y-auto'
 
   const rawChartH  = expanded ? 260 : 100
   const dailyChartH = expanded ? 340 : 150
