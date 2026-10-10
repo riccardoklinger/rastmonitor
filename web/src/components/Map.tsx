@@ -38,6 +38,7 @@ export interface SiteProperties {
 
 export interface MapHandle {
   flyTo: (lng: number, lat: number, zoom?: number) => void
+  showPopup: (lng: number, lat: number, site: SiteProperties, metricLabel?: string) => void
   setRoadFilter: (road: string) => void
 }
 
@@ -125,6 +126,13 @@ function buildPopupHtml(props: SiteProperties, metricLabel: string): string {
   `
 }
 
+function showSitePopup(map: maplibregl.Map, lngLat: maplibregl.LngLatLike, site: SiteProperties, metricLabel: string) {
+  return new maplibregl.Popup({ closeButton: true, maxWidth: '260px', offset: 12, className: 'site-map-popup' })
+    .setLngLat(lngLat)
+    .setHTML(buildPopupHtml(site, metricLabel))
+    .addTo(map)
+}
+
 const Map = forwardRef<MapHandle, MapProps>(function Map(
   { onSiteSelect, dataUrl = '/api/sites', metricLabel = 'Auslastung' },
   ref
@@ -138,6 +146,9 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
   useImperativeHandle(ref, () => ({
     flyTo: (lng, lat, zoom = 13) => {
       mapRef.current?.flyTo({ center: [lng, lat], zoom, essential: true })
+    },
+    showPopup: (lng, lat, site, label = metricLabelRef.current) => {
+      if (mapRef.current) showSitePopup(mapRef.current, [lng, lat], site, label)
     },
     setRoadFilter: (road: string) => {
         const map = mapRef.current
@@ -236,10 +247,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
         if (!feature) return
         const props = feature.properties as SiteProperties
 
-        new maplibregl.Popup({ closeButton: true, maxWidth: '260px', offset: 12, className: 'site-map-popup' })
-          .setLngLat(e.lngLat)
-          .setHTML(buildPopupHtml(props, metricLabelRef.current))
-          .addTo(map)
+        showSitePopup(map, e.lngLat, props, metricLabelRef.current)
 
         onSiteSelect(props)
       })

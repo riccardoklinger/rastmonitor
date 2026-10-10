@@ -40,7 +40,7 @@ export default function Home() {
 
   const handleSearchSelect = useCallback((result: SearchResult) => {
     mapRef.current?.flyTo(result.longitude, result.latitude, 14)
-    setSelectedSite({
+    const site: SiteProperties = {
       ...result,
       datex_id: result.datex_id,
       name: result.name,
@@ -52,7 +52,9 @@ export default function Home() {
       site_status: null,
       opening_status: null,
       fetched_at: null,
-    })
+    }
+    setSelectedSite(site)
+    mapRef.current?.showPopup(result.longitude, result.latitude, site, 'Auslastung (live)')
   }, [])
 
   const METRIC_LABELS = { max: 'Maximum', mean: 'Mittelwert', median: 'Median', min: 'Minimum' }
@@ -127,10 +129,6 @@ export default function Home() {
           </button>
         ))}
       </div>
-
-      {selectedSite && (
-        <SitePanel site={selectedSite} onClose={() => setSelectedSite(null)} />
-      )}
 
       {/* Autobahn filter + Legend — stacked bottom-left */}
       <div className="absolute bottom-16 left-4 z-10 flex flex-col gap-2 items-start">

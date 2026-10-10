@@ -41,19 +41,33 @@ export default function SearchBox({ onSelect }: SearchBoxProps) {
   const [active, setActive]     = useState(-1)
   const debounceRef             = useRef<ReturnType<typeof setTimeout> | null>(null)
   const containerRef            = useRef<HTMLDivElement>(null)
+  const inputRef                = useRef<HTMLInputElement>(null)
+  const requestRef              = useRef<AbortController | null>(null)
 
   // Debounced fetch
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
     if (query.length < 2) { setResults([]); setOpen(false); return }
+    const controller = new AbortController()
+    requestRef.current = controller
     debounceRef.current = setTimeout(async () => {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`)
-      const data: SearchResult[] = await res.json()
-      setResults(data)
-      setOpen(data.length > 0)
-      setActive(-1)
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`, { signal: controller.signal })
+        const data: SearchResult[] = await res.json()
+        if (controller.signal.aborted) return
+        setResults(data)
+        setOpen(data.length > 0)
+        setActive(-1)
+      } catch {
+        if (controller.signal.aborted) return
+        setResults([])
+        setOpen(false)
+      }
     }, 200)
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      controller.abort()
+    }
   }, [query])
 
   // Close on outside click
@@ -68,8 +82,13 @@ export default function SearchBox({ onSelect }: SearchBoxProps) {
   }, [])
 
   const handleSelect = useCallback((r: SearchResult) => {
-    setQuery(r.name)
+    requestRef.current?.abort()
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    setQuery('')
+    setResults([])
     setOpen(false)
+    setActive(-1)
+    inputRef.current?.blur()
     onSelect(r)
   }, [onSelect])
 
@@ -88,6 +107,7 @@ export default function SearchBox({ onSelect }: SearchBoxProps) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
         </svg>
         <input
+          ref={inputRef}
           type="text"
           value={query}
           onChange={e => setQuery(e.target.value)}
@@ -108,7 +128,7 @@ export default function SearchBox({ onSelect }: SearchBoxProps) {
           {results.map((r, i) => (
             <li
               key={r.datex_id}
-              onMouseDown={() => handleSelect(r)}
+              onClick={() => handleSelect(r)}
               onMouseEnter={() => setActive(i)}
               className={`flex items-start gap-2 px-3 py-2 cursor-pointer text-sm ${
                 i === active ? 'bg-blue-50' : 'hover:bg-gray-50'
