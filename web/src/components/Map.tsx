@@ -20,6 +20,12 @@ const OCCUPANCY_COLOR: any = [
 export interface SiteProperties {
   datex_id: string
   name: string
+  operator_name?: string | null
+  road_identifier?: string | null
+  road_destination?: string | null
+  free_of_charge?: boolean | null
+  location_type?: string | null
+  certified_secure?: boolean | null
   official_spaces: number | null | undefined
   total_spaces: number
   vacant_spaces: number | null | undefined
@@ -230,7 +236,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
         if (!feature) return
         const props = feature.properties as SiteProperties
 
-        new maplibregl.Popup({ closeButton: true, maxWidth: '260px', offset: 12 })
+        new maplibregl.Popup({ closeButton: true, maxWidth: '260px', offset: 12, className: 'site-map-popup' })
           .setLngLat(e.lngLat)
           .setHTML(buildPopupHtml(props, metricLabelRef.current))
           .addTo(map)

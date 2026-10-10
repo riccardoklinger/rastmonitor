@@ -136,6 +136,16 @@ export default function SitePanel({ site, onClose }: Props) {
     officialSpaces != null && totalSpaces != null
       ? Math.max(0, totalSpaces - officialSpaces)
       : null
+  const formatBoolean = (value: boolean | null | undefined) =>
+    value == null ? 'Keine Angabe' : value ? 'Ja' : 'Nein'
+  const staticDetails = [
+    ['Betreiber', site.operator_name],
+    ['Straße / Autobahn', site.road_identifier],
+    ['Fahrtrichtung / Ziel', site.road_destination],
+    ['Kostenlos', formatBoolean(site.free_of_charge)],
+    ['Standorttyp', site.location_type],
+    ['Zertifizierter Sicherheitsparkplatz', formatBoolean(site.certified_secure)],
+  ]
 
   return (
     <>
@@ -182,6 +192,17 @@ export default function SitePanel({ site, onClose }: Props) {
                 {new Date(site.fetched_at).toLocaleString('de-DE')}
               </p>
             )}
+            <section className="border-t border-gray-100 pt-3">
+              <h3 className="text-xs font-medium text-gray-700 mb-2">Standortdetails</h3>
+              <dl className="space-y-2 text-xs">
+                {staticDetails.map(([label, value]) => (
+                  <div key={label}>
+                    <dt className="text-gray-500">{label}</dt>
+                    <dd className="text-gray-800 break-words">{value || 'Keine Angabe'}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
           </div>
 
           {/* 72 h chart */}

@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import type { SiteProperties } from './Map'
 
-interface SearchResult {
+export interface SearchResult extends Pick<SiteProperties,
+  'operator_name' | 'road_identifier' | 'road_destination' | 'free_of_charge' | 'location_type' | 'certified_secure'> {
   datex_id: string
   name: string
   official_spaces: number | null

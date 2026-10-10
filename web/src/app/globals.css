@@ -13,3 +13,29 @@ body {
 .maplibregl-ctrl-top-right {
   top: 3.5rem;
 }
+
+.site-map-popup .maplibregl-popup-content {
+  padding-right: 48px;
+}
+
+.site-map-popup .maplibregl-popup-close-button {
+  width: 44px;
+  height: 44px;
+  font-size: 0;
+  color: #9ca3af;
+}
+
+.site-map-popup .maplibregl-popup-close-button::after {
+  content: '\2715';
+  font-size: 18px;
+  line-height: 44px;
+}
+
+.site-map-popup .maplibregl-popup-close-button:hover {
+  color: #374151;
+}
+
+.site-map-popup .maplibregl-popup-close-button:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
+}

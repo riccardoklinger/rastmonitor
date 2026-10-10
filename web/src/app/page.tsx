@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic'
 import { useState, useCallback, useRef } from 'react'
 import type { SiteProperties, MapHandle } from '@/components/Map'
 import type { DailyMetric } from '@/components/DayPicker'
+import type { SearchResult } from '@/components/SearchBox'
 
 const Map = dynamic(() => import('@/components/Map'), { ssr: false })
 const SitePanel = dynamic(() => import('@/components/SitePanel'), { ssr: false })
@@ -37,9 +38,10 @@ export default function Home() {
     setDailyMetric(m)
   }, [])
 
-  const handleSearchSelect = useCallback((result: { longitude: number; latitude: number; datex_id: string; name: string; official_spaces: number | null; total_spaces: number; occupancy_pct: number | null }) => {
+  const handleSearchSelect = useCallback((result: SearchResult) => {
     mapRef.current?.flyTo(result.longitude, result.latitude, 14)
     setSelectedSite({
+      ...result,
       datex_id: result.datex_id,
       name: result.name,
       official_spaces: result.official_spaces,
