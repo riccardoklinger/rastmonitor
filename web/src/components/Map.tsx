@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useRef, useImperativeHandle, forwardRef } from 'react'
+import { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react'
 import maplibregl from 'maplibre-gl'
+import { Layers } from 'lucide-react'
 
 // Colour scale by occupancy_pct
 // coalesce maps null/missing → -1, which falls into the grey bucket below 0.
@@ -52,7 +53,63 @@ interface MapProps {
 // For local dev without tiles, set NEXT_PUBLIC_MAP_STYLE to a remote style URL.
 const MAP_STYLE = process.env.NEXT_PUBLIC_MAP_STYLE ?? '/api/map-style'
 
+function rasterStyle(tiles: string, attribution: string, maxzoom: number): maplibregl.StyleSpecification {
+  return {
+    version: 8,
+    sources: {
+      basemap: { type: 'raster', tiles: [tiles], tileSize: 256, maxzoom, attribution },
+    },
+    layers: [
+      { id: 'background', type: 'background', paint: { 'background-color': '#f3f4f6' } },
+      { id: 'basemap', type: 'raster', source: 'basemap' },
+    ],
+  }
+}
+
+const BKG_STYLE_ROOT = 'https://sgx.geodatenzentrum.de/gdz_basemapde_vektor/styles'
+const BKG_TOPPLUS_CREDIT = `© BKG ${new Date().getFullYear()} <a href="https://www.govdata.de/dl-de/by-2-0">dl-de/by-2-0</a> · <a href="https://sgx.geodatenzentrum.de/web_public/gdz/datenquellen/datenquellen_topplusopen.html">Datenquellen</a>`
+const BASEMAPS: { id: string; label: string; caption: string; style: string | maplibregl.StyleSpecification }[] = [
+  { id: 'default', label: 'Standard', caption: 'Standard', style: MAP_STYLE },
+  { id: 'color', label: 'BKG · Farbe', caption: 'Farbe', style: `${BKG_STYLE_ROOT}/bm_web_col.json` },
+  { id: 'grey', label: 'BKG · Grau', caption: 'Grau', style: `${BKG_STYLE_ROOT}/bm_web_gry.json` },
+  { id: 'relief', label: 'BKG · Relief', caption: 'Relief', style: `${BKG_STYLE_ROOT}/bm_web_top.json` },
+  {
+    id: 'light', label: 'BKG · TopPlusOpen Light', caption: 'Light',
+    style: rasterStyle('https://sgx.geodatenzentrum.de/wmts_topplus_open/tile/1.0.0/web_light/default/WEBMERCATOR/{z}/{y}/{x}.png', BKG_TOPPLUS_CREDIT, 18),
+  },
+  {
+    id: 'light-grey', label: 'BKG · TopPlusOpen Light Grau', caption: 'Light Grau',
+    style: rasterStyle('https://sgx.geodatenzentrum.de/wmts_topplus_open/tile/1.0.0/web_light_grau/default/WEBMERCATOR/{z}/{y}/{x}.png', BKG_TOPPLUS_CREDIT, 18),
+  },
+  {
+    id: 'imagery', label: 'Esri · Luftbild', caption: 'Luftbild',
+    style: rasterStyle('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', '<a href="https://www.esri.com/">Esri</a>, Vantor, Earthstar Geographics, and the GIS User Community', 19),
+  },
+]
+
+function BasemapPreview({ style }: { style: string | maplibregl.StyleSpecification }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!containerRef.current) return
+    const preview = new maplibregl.Map({
+      container: containerRef.current,
+      style,
+      center: [10.4515, 51.1657],
+      zoom: 9,
+      interactive: false,
+      attributionControl: false,
+      renderWorldCopies: false,
+      fadeDuration: 0,
+    })
+    return () => { preview.remove() }
+  }, [style])
+
+  return <div ref={containerRef} aria-hidden="true" className="pointer-events-none h-20 w-full bg-gray-100" />
+}
+
 function applyRoadFilter(map: maplibregl.Map, road: string) {
+  if (!map.getLayer('parking-circles')) return
   if (!road.trim()) {
     map.setFilter('parking-circles', null)
     if (map.getLayer('parking-circles-dim'))
@@ -142,6 +199,30 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
   const dataUrlRef      = useRef(dataUrl)
   const metricLabelRef  = useRef(metricLabel)
   const roadFilterRef   = useRef('')
+  const basemapMenuRef  = useRef<HTMLDetailsElement>(null)
+  const [basemapMenuOpen, setBasemapMenuOpen] = useState(false)
+  const [basemapId, setBasemapId] = useState(
+    BASEMAPS.find(basemap => basemap.id !== 'default' && basemap.style === MAP_STYLE)?.id ?? 'default'
+  )
+
+  useEffect(() => {
+    const dismissMenu = (event: PointerEvent) => {
+      const menu = basemapMenuRef.current
+      if (menu && !menu.contains(event.target as Node)) menu.open = false
+    }
+    const dismissOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && basemapMenuRef.current?.open) {
+        basemapMenuRef.current.open = false
+        basemapMenuRef.current.querySelector('summary')?.focus()
+      }
+    }
+    document.addEventListener('pointerdown', dismissMenu)
+    document.addEventListener('keydown', dismissOnEscape)
+    return () => {
+      document.removeEventListener('pointerdown', dismissMenu)
+      document.removeEventListener('keydown', dismissOnEscape)
+    }
+  }, [])
 
   useImperativeHandle(ref, () => ({
     flyTo: (lng, lat, zoom = 13) => {
@@ -151,9 +232,9 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
       if (mapRef.current) showSitePopup(mapRef.current, [lng, lat], site, label)
     },
     setRoadFilter: (road: string) => {
+      roadFilterRef.current = road
         const map = mapRef.current
         if (!map) return
-        roadFilterRef.current = road
         applyRoadFilter(map, road)
       },
   }))
@@ -198,7 +279,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
       'bottom-right'
     )
 
-    map.on('load', () => {
+    map.on('style.load', () => {
       map.addSource('parking', {
         type: 'geojson',
         data: dataUrlRef.current,
@@ -233,24 +314,26 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
         },
       }, 'parking-circles') // insert below main layer so main layer renders on top
 
-      // Pointer cursor on hover
-      map.on('mouseenter', 'parking-circles', () => {
-        map.getCanvas().style.cursor = 'pointer'
-      })
-      map.on('mouseleave', 'parking-circles', () => {
-        map.getCanvas().style.cursor = ''
-      })
+      applyRoadFilter(map, roadFilterRef.current)
+    })
 
-      // Click → popup + side panel
-      map.on('click', 'parking-circles', (e) => {
-        const feature = e.features?.[0]
-        if (!feature) return
-        const props = feature.properties as SiteProperties
+    // Pointer cursor on hover
+    map.on('mouseenter', 'parking-circles', () => {
+      map.getCanvas().style.cursor = 'pointer'
+    })
+    map.on('mouseleave', 'parking-circles', () => {
+      map.getCanvas().style.cursor = ''
+    })
 
-        showSitePopup(map, e.lngLat, props, metricLabelRef.current)
+    // Click → popup + side panel
+    map.on('click', 'parking-circles', (e) => {
+      const feature = e.features?.[0]
+      if (!feature) return
+      const props = feature.properties as SiteProperties
 
-        onSiteSelect(props)
-      })
+      showSitePopup(map, e.lngLat, props, metricLabelRef.current)
+
+      onSiteSelect(props)
     })
 
     mapRef.current = map
@@ -269,7 +352,51 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
     }
   }, [onSiteSelect])
 
-  return <div ref={containerRef} className="w-full h-full" />
+  return (
+    <div className="relative w-full h-full">
+      <div ref={containerRef} className="w-full h-full" />
+      <details ref={basemapMenuRef} name="map-tools" onToggle={event => setBasemapMenuOpen(event.currentTarget.open)} className="absolute top-[49px] right-[10px] z-20 text-sm">
+        <summary
+          aria-label="Hintergrundkarte wählen"
+          title="Hintergrundkarte wählen"
+          className="map-toolbar-button"
+        >
+          <Layers size={18} aria-hidden="true" />
+        </summary>
+        <fieldset className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-1rem)] max-h-[calc(100dvh-12rem)] overflow-y-auto rounded bg-white p-2 shadow-lg ring-1 ring-black/10">
+          <legend className="sr-only">Hintergrundkarte</legend>
+          <div className="grid grid-cols-2 gap-2">
+          {BASEMAPS.filter(basemap => basemap.id !== 'default' || !BASEMAPS.some(option => option.id !== 'default' && option.style === MAP_STYLE)).map(basemap => (
+            <label key={basemap.id} title={basemap.label} className="relative cursor-pointer">
+              <input
+                type="radio"
+                name="basemap"
+                value={basemap.id}
+                checked={basemapId === basemap.id}
+                onChange={() => {
+                  if (!mapRef.current) return
+                  mapRef.current.setStyle(basemap.style, { diff: false })
+                  setBasemapId(basemap.id)
+                  if (basemapMenuRef.current) basemapMenuRef.current.open = false
+                }}
+                aria-label={basemap.label}
+                className="peer sr-only"
+              />
+              <div className="overflow-hidden rounded border border-gray-200 peer-checked:border-blue-600 peer-checked:ring-1 peer-checked:ring-blue-600 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-blue-600 hover:border-gray-400">
+                {basemapMenuOpen ? <BasemapPreview style={basemap.style} /> : <div className="h-20 bg-gray-100" />}
+                <span className="flex h-8 items-center justify-center bg-white px-1 text-xs text-gray-700">{basemap.caption}</span>
+              </div>
+            </label>
+          ))}
+          </div>
+          <p className="mt-2 text-[9px] leading-snug text-gray-500">
+            © GeoBasis-DE / BKG {new Date().getFullYear()} · <a href="https://sgx.geodatenzentrum.de/web_public/gdz/datenquellen/datenquellen_topplusopen.html" className="underline" target="_blank" rel="noopener noreferrer">Datenquellen</a><br />
+            © Esri, Vantor, Earthstar Geographics, GIS User Community
+          </p>
+        </fieldset>
+      </details>
+    </div>
+  )
 })
 
 export default Map

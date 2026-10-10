@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "lucide-react": "^1.55.0",
     "maplibre-gl": "^4.7.1",
     "next": "^16.2.9",
     "pg": "^8.13.3",

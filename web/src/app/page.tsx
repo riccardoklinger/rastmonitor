@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { useState, useCallback, useRef } from 'react'
+import { Menu } from 'lucide-react'
 import type { SiteProperties, MapHandle } from '@/components/Map'
 import type { DailyMetric } from '@/components/DayPicker'
 import type { SearchResult } from '@/components/SearchBox'
@@ -83,14 +84,13 @@ export default function Home() {
       )}
 
       {/* Navigation menu above the map controls */}
-      <details className="group absolute top-3 right-2 z-20 text-sm">
+      <details name="map-tools" className="group absolute top-[10px] right-[10px] z-20 text-sm">
         <summary
           aria-label="Navigation öffnen"
-          className="flex h-10 w-10 cursor-pointer list-none flex-col items-center justify-center gap-1 rounded bg-white/95 shadow-md text-gray-700 hover:bg-white [&::-webkit-details-marker]:hidden"
+          title="Navigation öffnen"
+          className="map-toolbar-button"
         >
-          <span className="h-0.5 w-5 rounded bg-current" />
-          <span className="h-0.5 w-5 rounded bg-current" />
-          <span className="h-0.5 w-5 rounded bg-current" />
+          <Menu size={18} aria-hidden="true" />
         </summary>
         <nav aria-label="Hauptnavigation" className="absolute right-0 mt-2 flex min-w-40 flex-col overflow-hidden rounded bg-white shadow-lg ring-1 ring-black/10">
           <a href="/table" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">Tabelle</a>
