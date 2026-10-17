@@ -12,7 +12,7 @@ server:
   cors: true
   pretty_print: true
   limits:
-    default_items: 100
+    default_items: 10
     max_items: 10000
   map:
     url: https://tile.openstreetmap.org/{z}/{x}/{y}.png
@@ -37,7 +37,7 @@ metadata:
       - occupancy
       - DATEX II
     keywords_type: theme
-    terms_of_service: https://www.mobilithek.info/nutzungsbedingungen
+    terms_of_service: https://company.toll-collect.de/go/sid-agb-lb
     url: https://rast-monitor.de
   license:
     name: Datenlizenz Deutschland – Namensnennung – Version 2.0
@@ -47,7 +47,7 @@ metadata:
     url: https://rast-monitor.de
   contact:
     name: Rastmonitor
-    email: info@rast-monitor.de
+    email: webmaster@gis-monitor.com
 
 resources:
 
