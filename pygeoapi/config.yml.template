@@ -153,6 +153,6 @@ resources:
           search_path:
             - public
         id_field: id
-        table: v_parking_daily
+        table: mv_parking_daily
         geom_field: geom
         time_field: day

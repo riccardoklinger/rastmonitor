@@ -14,9 +14,9 @@ COPY . .
 # Install crontab:
 # - static fetch once daily at 03:00
 # - dynamic fetch every 15 minutes
-RUN echo "0 3 * * * /usr/local/bin/python3 /app/fetch_static.py >> /var/log/cron.log 2>&1\n\
+RUN echo "0 3 * * * { /usr/local/bin/python3 /app/fetch_static.py && /usr/local/bin/python3 /app/refresh_ogcapi_daily.py; } >> /var/log/cron.log 2>&1\n\
 */15 * * * * /usr/local/bin/python3 /app/fetch_dynamic.py >> /var/log/cron.log 2>&1\n\
-0 2 * * * /usr/local/bin/python3 /app/aggregate_daily.py >> /var/log/cron.log 2>&1\n\
+0 2 * * * { /usr/local/bin/python3 /app/aggregate_daily.py && /usr/local/bin/python3 /app/refresh_ogcapi_daily.py; } >> /var/log/cron.log 2>&1\n\
 30 2 * * * /usr/local/bin/python3 /app/prune_raw.py >> /var/log/cron.log 2>&1" \
     | crontab -
 

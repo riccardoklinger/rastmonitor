@@ -170,9 +170,15 @@ The Dockerfile installs these cron jobs automatically:
 | Time | Script | Purpose |
 |---|---|---|
 | `*/15 * * * *` | `fetch_dynamic.py` | Live occupancy, every 15 min |
-| `0 3 * * *` | `fetch_static.py` | Refresh static sites, daily |
-| `0 2 * * *` | `aggregate_daily.py` | Compute daily stats |
+| `0 3 * * *` | `fetch_static.py` then `refresh_ogcapi_daily.py` | Refresh static sites, then the historical OGC snapshot |
+| `0 2 * * *` | `aggregate_daily.py` then `refresh_ogcapi_daily.py` | Compute daily stats, then refresh the historical OGC snapshot |
 | `30 2 * * *` | `prune_raw.py` | Delete raw >72h, daily >6 months |
+
+Times use the ingestion container's timezone. Each snapshot refresh starts only
+after its preceding script exits successfully, not at a fixed delay. If an
+upstream job fails, its refresh is skipped. A failed refresh retains the previous
+snapshot and exits nonzero; both jobs write to `/var/log/cron.log`. The existing
+02:00 aggregation / 02:30 pruning order is unchanged.
 
 Verify cron is running inside the container:
 
@@ -282,17 +288,17 @@ docker compose cp db/migrate_add_ogcapi_views.sql db:/tmp/
 docker compose exec db psql -U rastmonitor -d rastmonitor -f /tmp/migrate_add_ogcapi_views.sql
 ```
 
-### Historical collection: materialized-view benchmark
+### Historical collection: materialized snapshot
 
-The optional migration below creates `public.mv_parking_daily` as a populated
+The migration below creates `public.mv_parking_daily` as a populated
 snapshot of the existing `public.v_parking_daily`. It retains the source view's
 columns, geometries, and public feature IDs. It adds a unique B-tree index on `id`,
 a B-tree index on `day`, and a GiST index on `geom`, then runs `ANALYZE`.
 The source OGC views and their static-attribute columns must already exist.
 
-**This first stage does not change the published API or the cron schedule.**
-`parking_daily` continues to use `v_parking_daily`. The new snapshot is for
-comparison before enabling it in production. No existing tables or views are
+**The current `parking_daily` provider uses `mv_parking_daily`. Apply this migration
+before deploying the changed pygeoapi image.** The original `v_parking_daily`
+remains available for comparisons and rollback. No existing tables or views are
 dropped. Allow additional database storage for the snapshot and its indexes.
 
 From the repository root on the server, preferably outside busy periods:
@@ -326,7 +332,43 @@ or geometry-serialization step. Compare execution times, `Sort` nodes, temporary
 buffers, and use of `mv_parking_daily_id_idx`. A sequential scan for `COUNT(*)` can
 still be appropriate; a large `OFFSET` still needs to skip index entries.
 
-To update the snapshot manually after subsequent data changes:
+### Enable the snapshot in production
+
+After applying the migration, build the updated images without starting them:
+
+```bash
+docker compose build ingestion pygeoapi
+```
+
+Refresh the snapshot using the newly built ingestion image before switching the
+running API. If this command fails, do not continue to the deployment command:
+
+```bash
+docker compose run --rm --no-deps --entrypoint /usr/local/bin/python3 \
+  ingestion /app/refresh_ogcapi_daily.py
+```
+
+Outside the daily ingestion jobs, replace only the two affected services:
+
+```bash
+docker compose up -d --no-deps ingestion pygeoapi
+docker compose exec ingestion crontab -l
+docker compose logs --tail=50 pygeoapi
+```
+
+The refreshed snapshot is now used by the historical collection. The live and
+72-hour collections, pagination settings, and provider count behavior are unchanged.
+Verify the root/items endpoints, ID lookup, datetime/bbox filters, returned
+properties and geometries, and a complete paginated QGIS download. Compare the
+IDs and total count with the original view using the same data snapshot.
+
+After deployment, manual refreshes use the running ingestion container:
+
+```bash
+docker compose exec ingestion python /app/refresh_ogcapi_daily.py
+```
+
+For direct SQL maintenance without the ingestion image:
 
 ```bash
 docker compose exec -T db sh -c \
@@ -344,13 +386,29 @@ snapshot. The 90-day cutoff is evaluated at refresh time, not on each API reques
 New daily aggregates and updated site metadata appear only after a refresh; even
 without inserts, refresh is needed to age old days out of the rolling window.
 
-Before changing the `parking_daily` provider's `table` to `mv_parking_daily`, first
-schedule a refresh after the daily aggregation and static-data updates, including
-failure monitoring. Then verify QGIS pagination, feature-ID lookup, date and spatial
-filters, and returned properties. Do not switch the provider while the snapshot
-is refreshed only manually. Rolling back the provider to `v_parking_daily` retains
-the original feature-ID format. Keep pagination and `count` settings unchanged
-during the initial comparison so their effects are not mixed with this change.
+The ingestion crontab refreshes the snapshot after successful daily aggregation
+and static-data updates. Inspect `/var/log/cron.log` for
+`[refresh_ogcapi_daily]` messages: success includes elapsed time, and failures
+include a traceback and nonzero process exit. The script sets a 5-second lock
+timeout and a 120-second statement timeout. It does not silently create a missing
+snapshot or fall back to a blocking refresh. A successful refresh is committed
+before `ANALYZE`; if analysis alone fails, the new snapshot is already available.
+
+```bash
+docker compose exec ingestion tail -n 100 /var/log/cron.log
+```
+
+These logs provide failure visibility, not automatic alert delivery. Include them
+in server monitoring and verify successful refreshes after both daily jobs;
+otherwise a failed upstream job or refresh can leave an old snapshot being served.
+Manual aggregation or static-data runs outside cron must be followed by a manual
+refresh. An hourly/15-minute refresh is not needed for these daily aggregates.
+
+To roll back the API source, change only the `parking_daily` provider's `table`
+in `pygeoapi/config.yml.template` from `mv_parking_daily` to `v_parking_daily`, then
+run `docker compose up -d --build --no-deps pygeoapi`. The original feature-ID
+format is unchanged. Keep the snapshot and its refresh jobs while investigating;
+no table/view deletion is required for rollback.
 
 ### Available collections
 
