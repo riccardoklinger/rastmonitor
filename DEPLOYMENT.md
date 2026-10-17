@@ -282,6 +282,76 @@ docker compose cp db/migrate_add_ogcapi_views.sql db:/tmp/
 docker compose exec db psql -U rastmonitor -d rastmonitor -f /tmp/migrate_add_ogcapi_views.sql
 ```
 
+### Historical collection: materialized-view benchmark
+
+The optional migration below creates `public.mv_parking_daily` as a populated
+snapshot of the existing `public.v_parking_daily`. It retains the source view's
+columns, geometries, and public feature IDs. It adds a unique B-tree index on `id`,
+a B-tree index on `day`, and a GiST index on `geom`, then runs `ANALYZE`.
+The source OGC views and their static-attribute columns must already exist.
+
+**This first stage does not change the published API or the cron schedule.**
+`parking_daily` continues to use `v_parking_daily`. The new snapshot is for
+comparison before enabling it in production. No existing tables or views are
+dropped. Allow additional database storage for the snapshot and its indexes.
+
+From the repository root on the server, preferably outside busy periods:
+
+```bash
+docker compose exec -T db sh -c \
+  'exec psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
+  < db/migrate_add_ogcapi_daily_materialized.sql
+```
+
+The migration uses a 5-second lock timeout and a 120-second statement timeout.
+It runs in a transaction, so errors roll back changes from that execution. It is
+safe to rerun, but an existing snapshot is not repopulated or structurally upgraded
+by `IF NOT EXISTS`. If the source view's columns later change, plan an explicit
+snapshot schema migration rather than assuming this script updates it.
+
+Compare the original and materialized view using the same count and ID-ordered
+queries at offsets 0, 53,900, and 150,000:
+
+```bash
+docker compose exec -T db sh -c \
+  'exec psql -X -v ON_ERROR_STOP=1 -P pager=off -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
+  < db/benchmark_ogcapi_daily.sql
+```
+
+Run the benchmark twice and retain both outputs. It uses a read-only transaction,
+a 15-second timeout per statement, and `EXPLAIN (ANALYZE, BUFFERS, SETTINGS)`.
+It really executes the SELECTs and therefore consumes CPU and I/O. These are
+controlled comparison queries, not an exact replay of every provider projection
+or geometry-serialization step. Compare execution times, `Sort` nodes, temporary
+buffers, and use of `mv_parking_daily_id_idx`. A sequential scan for `COUNT(*)` can
+still be appropriate; a large `OFFSET` still needs to skip index entries.
+
+To update the snapshot manually after subsequent data changes:
+
+```bash
+docker compose exec -T db sh -c \
+  'exec psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' <<'SQL'
+SET lock_timeout = '5s';
+SET statement_timeout = '120s';
+REFRESH MATERIALIZED VIEW CONCURRENTLY public.mv_parking_daily;
+ANALYZE public.mv_parking_daily;
+SQL
+```
+
+The initial migration populates the snapshot and supplies the unique index needed
+for concurrent refresh. During a refresh, readers can continue using the previous
+snapshot. The 90-day cutoff is evaluated at refresh time, not on each API request.
+New daily aggregates and updated site metadata appear only after a refresh; even
+without inserts, refresh is needed to age old days out of the rolling window.
+
+Before changing the `parking_daily` provider's `table` to `mv_parking_daily`, first
+schedule a refresh after the daily aggregation and static-data updates, including
+failure monitoring. Then verify QGIS pagination, feature-ID lookup, date and spatial
+filters, and returned properties. Do not switch the provider while the snapshot
+is refreshed only manually. Rolling back the provider to `v_parking_daily` retains
+the original feature-ID format. Keep pagination and `count` settings unchanged
+during the initial comparison so their effects are not mixed with this change.
+
 ### Available collections
 
 | Collection | URL | Description |

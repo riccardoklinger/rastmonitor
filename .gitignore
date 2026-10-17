@@ -22,3 +22,6 @@ out/
 
 # Misc
 .DS_Store
+
+# Local analysis reports and source data
+/report/
