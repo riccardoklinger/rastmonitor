@@ -1,8 +1,9 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useState, useCallback, useRef } from 'react'
-import { Menu } from 'lucide-react'
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { List, Menu, Route, Search } from 'lucide-react'
+import RoadFilter from '@/components/RoadFilter'
 import type { SiteProperties, MapHandle } from '@/components/Map'
 import type { DailyMetric } from '@/components/DayPicker'
 import type { SearchResult } from '@/components/SearchBox'
@@ -21,13 +22,43 @@ export default function Home() {
   const [snapshotTime, setSnapshotTime] = useState<Date | null>(null)
   const [dailyDate, setDailyDate] = useState<string>('')
   const mapRef = useRef<MapHandle>(null)
+  const toolsRef = useRef<HTMLDivElement>(null)
+  const searchToolRef = useRef<HTMLDetailsElement>(null)
+  const roadToolRef = useRef<HTMLDetailsElement>(null)
   const [dailyMetric, setDailyMetric] = useState<DailyMetric>('max')
 
   const [roadFilter, setRoadFilter] = useState('')
+  const [roadToolOpen, setRoadToolOpen] = useState(false)
+
+  useEffect(() => {
+    const dismissTools = (event: PointerEvent) => {
+      toolsRef.current?.querySelectorAll<HTMLDetailsElement>('details[open]').forEach(tool => {
+        if (!tool.contains(event.target as Node)) tool.open = false
+      })
+    }
+    const dismissOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      const tool = toolsRef.current?.querySelector<HTMLDetailsElement>('details[open]')
+      if (tool) {
+        tool.open = false
+        tool.querySelector('summary')?.focus()
+      }
+    }
+    document.addEventListener('pointerdown', dismissTools)
+    document.addEventListener('keydown', dismissOnEscape)
+    return () => {
+      document.removeEventListener('pointerdown', dismissTools)
+      document.removeEventListener('keydown', dismissOnEscape)
+    }
+  }, [])
 
   const handleRoadFilter = useCallback((val: string) => {
     setRoadFilter(val)
     mapRef.current?.setRoadFilter(val)
+    if (roadToolRef.current) {
+      roadToolRef.current.open = false
+      roadToolRef.current.querySelector('summary')?.focus()
+    }
   }, [])
 
   const handleTimeChange = useCallback((t: Date | null) => {
@@ -56,6 +87,7 @@ export default function Home() {
     }
     setSelectedSite(site)
     mapRef.current?.showPopup(result.longitude, result.latitude, site, 'Auslastung (live)')
+    if (searchToolRef.current) searchToolRef.current.open = false
   }, [])
 
   const METRIC_LABELS = { max: 'Maximum', mean: 'Mittelwert', median: 'Median', min: 'Minimum' }
@@ -102,11 +134,6 @@ export default function Home() {
         </nav>
       </details>
 
-      {/* Search box — top left */}
-      <div className="absolute top-3 left-4 z-10">
-        <SearchBox onSelect={handleSearchSelect} />
-      </div>
-
       {/* Mode toggle — top centre */}
       <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex rounded-lg shadow border border-gray-200 overflow-hidden text-sm font-medium">
         {([
@@ -130,26 +157,47 @@ export default function Home() {
         ))}
       </div>
 
-      {/* Autobahn filter + Legend — stacked bottom-left */}
-      <div className="absolute bottom-16 left-4 z-10 flex flex-col gap-2 items-start">
-        {/* Autobahn filter */}
-        <div className="bg-white rounded-lg shadow-md px-3 py-2 flex items-center gap-2">
-          <span className="text-xs text-gray-500 font-medium whitespace-nowrap">🛣 Autobahn</span>
-          <input
-            type="text"
-            value={roadFilter}
-            onChange={e => handleRoadFilter(e.target.value.toUpperCase())}
-            placeholder="z.B. A2"
-            maxLength={6}
-            className="w-16 border border-gray-200 rounded px-2 py-0.5 text-xs font-mono uppercase focus:outline-none focus:border-blue-400"
-          />
-          {roadFilter && (
-            <button onClick={() => handleRoadFilter('')} className="text-gray-400 hover:text-gray-700 text-xs">✕</button>
-          )}
-        </div>
+      <div ref={toolsRef} className="absolute top-[88px] right-[10px] z-20 flex flex-col gap-[10px] text-sm">
+        <details
+          ref={searchToolRef}
+          name="map-tools"
+          className="relative"
+          onToggle={event => {
+            if (event.currentTarget.open) event.currentTarget.querySelector('input')?.focus()
+          }}
+        >
+          <summary aria-label="Parkplatz suchen" title="Parkplatz suchen" className="map-toolbar-button">
+            <Search size={18} aria-hidden="true" />
+          </summary>
+          <div className="absolute top-0 right-[39px] w-72 max-w-[calc(100vw-59px)]">
+            <SearchBox onSelect={handleSearchSelect} />
+          </div>
+        </details>
 
-        {/* Legend */}
-        <div className="bg-white rounded-lg shadow-md p-3 text-xs space-y-1">
+        <details
+          ref={roadToolRef}
+          name="map-tools"
+          className="relative"
+          onToggle={event => setRoadToolOpen(event.currentTarget.open)}
+        >
+          <summary
+            aria-label="Autobahn filtern"
+            title={roadFilter ? `Autobahn filtern: ${roadFilter}` : 'Autobahn filtern'}
+            data-active={Boolean(roadFilter)}
+            className="map-toolbar-button"
+          >
+            <Route size={18} aria-hidden="true" />
+          </summary>
+          <div className="absolute top-0 right-[39px] w-72 max-w-[calc(100vw-59px)]">
+            {roadToolOpen && <RoadFilter value={roadFilter} onSelect={handleRoadFilter} />}
+          </div>
+        </details>
+
+        <details name="map-tools" className="relative">
+          <summary aria-label="Legende anzeigen" title="Legende anzeigen" className="map-toolbar-button">
+            <List size={18} aria-hidden="true" />
+          </summary>
+          <div className="absolute top-0 right-[39px] w-60 max-w-[calc(100vw-59px)] rounded bg-white p-3 shadow-md text-xs space-y-1">
         <p className="font-semibold text-gray-700 mb-1">
           {mode === 'dailymax'
             ? { max: 'Tagesmaximum', mean: 'Tagesmittel', median: 'Tagesmedian', min: 'Tagesminimum' }[dailyMetric]
@@ -168,7 +216,8 @@ export default function Home() {
             <span className="text-gray-600">{label}</span>
           </div>
         ))}
-        </div>
+          </div>
+        </details>
       </div>
 
       {/* Bottom control bar */}

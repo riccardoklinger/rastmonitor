@@ -11,7 +11,7 @@ body {
 }
 
 .maplibregl-ctrl-top-right {
-  top: 78px;
+  top: 195px;
 }
 
 .map-toolbar-button {
@@ -35,6 +35,12 @@ body {
 
 .map-toolbar-button:hover {
   background-color: #f2f2f2;
+}
+
+details[open] > .map-toolbar-button,
+.map-toolbar-button[data-active='true'] {
+  background-color: #eff6ff;
+  color: #2563eb;
 }
 
 .map-toolbar-button:focus-visible {

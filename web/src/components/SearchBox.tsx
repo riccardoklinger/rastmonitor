@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { Search } from 'lucide-react'
 import type { SiteProperties } from './Map'
 
 export interface SearchResult extends Pick<SiteProperties,
@@ -101,11 +102,9 @@ export default function SearchBox({ onSelect }: SearchBoxProps) {
   }
 
   return (
-    <div ref={containerRef} className="relative w-72">
+    <div ref={containerRef} className="relative w-full">
       <div className="flex items-center bg-white rounded-lg shadow border border-gray-200 px-3 py-2 gap-2">
-        <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
-        </svg>
+        <Search size={16} aria-hidden="true" className="text-gray-400 flex-shrink-0" />
         <input
           ref={inputRef}
           type="text"
@@ -114,7 +113,7 @@ export default function SearchBox({ onSelect }: SearchBoxProps) {
           onKeyDown={handleKeyDown}
           onFocus={() => results.length > 0 && setOpen(true)}
           placeholder="Parkplatz suchen…"
-          className="flex-1 text-sm outline-none bg-transparent text-gray-800 placeholder-gray-400"
+          className="min-w-0 flex-1 text-sm outline-none bg-transparent text-gray-800 placeholder-gray-400"
         />
         {query && (
           <button onClick={() => { setQuery(''); setResults([]); setOpen(false) }} className="text-gray-400 hover:text-gray-600">
@@ -124,7 +123,7 @@ export default function SearchBox({ onSelect }: SearchBoxProps) {
       </div>
 
       {open && (
-        <ul className="absolute top-full mt-1 left-0 right-0 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-72 overflow-y-auto">
+        <ul className="absolute top-full mt-1 left-0 right-0 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[min(18rem,30dvh)] overflow-y-auto">
           {results.map((r, i) => (
             <li
               key={r.datex_id}
