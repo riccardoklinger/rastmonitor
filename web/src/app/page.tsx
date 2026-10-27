@@ -124,7 +124,7 @@ export default function Home() {
         >
           <Menu size={18} aria-hidden="true" />
         </summary>
-        <nav aria-label="Hauptnavigation" className="absolute right-0 mt-2 flex min-w-40 flex-col overflow-hidden rounded bg-white shadow-lg ring-1 ring-black/10">
+        <nav aria-label="Hauptnavigation" className="absolute top-[39px] right-[39px] flex w-40 max-w-[calc(100vw-59px)] max-h-[calc(100dvh-8rem)] flex-col overflow-y-auto rounded bg-white shadow-lg ring-1 ring-black/10">
           <a href="/table" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">Tabelle</a>
           <a href="https://rast-monitor.de/ogcapi/" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">API</a>
           <a href="https://github.com/sponsors/riccardoklinger" target="_blank" rel="noopener noreferrer" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">♥ Sponsor</a>
@@ -135,7 +135,7 @@ export default function Home() {
       </details>
 
       {/* Mode toggle — top centre */}
-      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex rounded-lg shadow border border-gray-200 overflow-hidden text-sm font-medium">
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex w-max whitespace-nowrap rounded-lg shadow border border-gray-200 overflow-hidden text-sm font-medium">
         {([
           ['live',     '● Live'],
           ['history',  '⏱ 72h'],

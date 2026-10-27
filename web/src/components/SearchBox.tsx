@@ -103,7 +103,7 @@ export default function SearchBox({ onSelect }: SearchBoxProps) {
 
   return (
     <div ref={containerRef} className="relative w-full">
-      <div className="flex items-center bg-white rounded-lg shadow border border-gray-200 px-3 py-2 gap-2">
+      <div className="flex items-center bg-white rounded shadow border border-gray-200 px-3 py-2 gap-2">
         <Search size={16} aria-hidden="true" className="text-gray-400 flex-shrink-0" />
         <input
           ref={inputRef}
@@ -123,7 +123,7 @@ export default function SearchBox({ onSelect }: SearchBoxProps) {
       </div>
 
       {open && (
-        <ul className="absolute top-full mt-1 left-0 right-0 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[min(18rem,30dvh)] overflow-y-auto">
+        <ul className="absolute top-full mt-1 left-0 right-0 bg-white rounded shadow-lg border border-gray-200 z-50 max-h-[min(18rem,30dvh)] overflow-y-auto">
           {results.map((r, i) => (
             <li
               key={r.datex_id}

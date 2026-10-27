@@ -363,7 +363,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
         >
           <Layers size={18} aria-hidden="true" />
         </summary>
-        <fieldset className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-1rem)] max-h-[calc(100dvh-12rem)] overflow-y-auto rounded bg-white p-2 shadow-lg ring-1 ring-black/10">
+        <fieldset className="absolute top-0 right-[39px] w-72 max-w-[calc(100vw-59px)] max-h-[calc(100dvh-12rem)] overflow-y-auto rounded bg-white p-2 shadow-lg ring-1 ring-black/10">
           <legend className="sr-only">Hintergrundkarte</legend>
           <div className="grid grid-cols-2 gap-2">
           {BASEMAPS.filter(basemap => basemap.id !== 'default' || !BASEMAPS.some(option => option.id !== 'default' && option.style === MAP_STYLE)).map(basemap => (
