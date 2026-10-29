@@ -522,6 +522,7 @@ docker compose up -d --build
 
 This is a destructive schema migration. It removes `is_synthetic` from raw and
 daily data and recreates the dependent OGC views and materialized snapshot.
+The live API view is also recreated to support older column layouts.
 Records before **2026-07-01** are deleted; raw timestamps use **UTC midnight**.
 July 1 itself is retained. Static site records are not deleted. Check constraints
 prevent historical records before the cutoff from being inserted again.

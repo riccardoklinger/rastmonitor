@@ -9,6 +9,9 @@ SET LOCAL statement_timeout = '120s';
 DROP MATERIALIZED VIEW IF EXISTS public.mv_parking_daily;
 DROP VIEW IF EXISTS public.v_parking_daily;
 DROP VIEW IF EXISTS public.v_parking_72h;
+-- The included definitions also recreate live; older installations have a
+-- different column order, which CREATE OR REPLACE cannot change.
+DROP VIEW IF EXISTS public.v_parking_live;
 
 DELETE FROM public.parking_status
 WHERE fetched_at < TIMESTAMPTZ '2026-07-01 00:00:00+00';
