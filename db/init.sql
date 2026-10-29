@@ -27,8 +27,8 @@ CREATE TABLE IF NOT EXISTS parking_status (
     site_status         TEXT,            -- ParkingSiteStatusEnum
     opening_status      TEXT,            -- OpeningStatusEnum
     status_origin_time  TIMESTAMPTZ,     -- parkingStatusOriginTime from source
-    is_synthetic        BOOLEAN NOT NULL DEFAULT false,
-    fetched_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+    fetched_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT parking_status_dataset_start CHECK (fetched_at >= TIMESTAMPTZ '2026-07-01 00:00:00+00')
 );
 
 CREATE INDEX IF NOT EXISTS parking_status_datex_id_fetched_idx
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS parking_status_daily (
     min_occ      NUMERIC(5, 2),
     median_occ   NUMERIC(5, 2),
     sample_count INTEGER,
-    is_synthetic BOOLEAN NOT NULL DEFAULT false,
+    CONSTRAINT parking_status_daily_dataset_start CHECK (day >= DATE '2026-07-01'),
     UNIQUE (datex_id, day)
 );
 

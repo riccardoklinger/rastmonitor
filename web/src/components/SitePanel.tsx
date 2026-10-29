@@ -14,24 +14,14 @@ import {
 } from 'recharts'
 import type { SiteProperties } from './Map'
 
-/** Small corner badge shown when a chart contains any synthetic data points */
-function SyntheticBadge() {
-  return (
-    <span className="absolute top-1 right-1 z-10 text-[9px] font-semibold tracking-wider text-gray-400 bg-gray-100 border border-gray-200 rounded px-1 py-0.5 select-none pointer-events-none">
-      SYNTHETIC DATA
-    </span>
-  )
-}
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function RawTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
-  const { occ, synthetic } = payload[0].payload
+  const { occ } = payload[0].payload
   return (
     <div className="bg-white border border-gray-200 rounded shadow-sm px-2 py-1 text-xs">
       <p className="font-medium text-gray-700">{label}</p>
       <p className="text-blue-600">{occ !== null ? `${Number(occ).toFixed(1)} %` : '–'}</p>
-      {synthetic && <p className="text-gray-400 italic mt-0.5">synthetic</p>}
     </div>
   )
 }
@@ -54,7 +44,6 @@ function DailyTooltip({ active, payload, label }: any) {
 interface RawRow {
   fetched_at: string
   occupancy_pct: number | null
-  is_synthetic: boolean
 }
 
 interface DailyRow {
@@ -62,7 +51,6 @@ interface DailyRow {
   mean_occ: number | null
   max_occ: number | null
   min_occ: number | null
-  is_synthetic: boolean
 }
 
 function OccupancyBadge({ pct }: { pct: number | null | undefined }) {
@@ -113,9 +101,7 @@ export default function SitePanel({ site, onClose }: Props) {
   const rawData = raw.map((r) => ({
     t: fmt(r.fetched_at),
     occ: r.occupancy_pct !== null ? Number(r.occupancy_pct) : null,
-    synthetic: r.is_synthetic,
   }))
-  const rawHasSynthetic = raw.some((r) => r.is_synthetic)
 
   const dailyData = daily.map((d) => ({
     day: fmtDay(d.day),
@@ -212,7 +198,6 @@ export default function SitePanel({ site, onClose }: Props) {
               <p className="text-xs text-gray-400">Keine Daten</p>
             ) : (
               <div className="relative">
-                {rawHasSynthetic && <SyntheticBadge />}
                 <ResponsiveContainer width="100%" height={rawChartH}>
                   <AreaChart data={rawData} margin={{ top: 4, right: 0, left: -20, bottom: 0 }}>
                     <defs>

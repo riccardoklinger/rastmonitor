@@ -22,8 +22,7 @@ export async function GET(req: Request) {
        max_occ,
        min_occ,
        median_occ,
-       sample_count,
-       is_synthetic
+       sample_count
      FROM parking_status_daily
      WHERE datex_id = $1
        AND day >= now() - ($2 || ' days')::INTERVAL

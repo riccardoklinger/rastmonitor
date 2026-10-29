@@ -43,8 +43,7 @@ export async function GET(req: NextRequest) {
          ST_X(ps.location)  AS longitude,
          ST_Y(ps.location)  AS latitude,
          d.${col}           AS occupancy_pct,
-         d.max_occ, d.mean_occ, d.median_occ, d.min_occ,
-         d.is_synthetic
+         d.max_occ, d.mean_occ, d.median_occ, d.min_occ
        FROM parking_sites ps
        LEFT JOIN parking_status_daily d
          ON ps.datex_id = d.datex_id AND d.day = $1::date
@@ -76,7 +75,6 @@ export async function GET(req: NextRequest) {
           site_status:    null,
           opening_status: null,
           fetched_at:   dateParam,
-          is_synthetic: r.is_synthetic ?? false,
           metric:       metricParam,
         },
       })),

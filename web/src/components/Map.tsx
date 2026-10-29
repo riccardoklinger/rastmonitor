@@ -30,7 +30,6 @@ export interface SiteProperties {
   official_spaces: number | null | undefined
   total_spaces: number
   vacant_spaces: number | null | undefined
-  is_synthetic: boolean
   occupancy_pct: number | null | undefined
   site_status: string | null
   opening_status: string | null
@@ -147,7 +146,6 @@ function buildPopupHtml(props: SiteProperties, metricLabel: string): string {
     pct >= 50    ? '#eab308' :
                    '#22c55e'
   const pctStr = pct != null ? `${Number(pct).toFixed(1)} %` : 'Keine Daten'
-  const synth = props.is_synthetic ? '<span style="font-size:10px;color:#6b7280;font-style:italic"> · synthetisch</span>' : ''
 
   const officialSpaces = props.official_spaces ?? null
   const totalSpaces = props.total_spaces ?? null
@@ -177,7 +175,7 @@ function buildPopupHtml(props: SiteProperties, metricLabel: string): string {
         <span style="font-size:13px;font-weight:600;color:#111">${pctStr}</span>
         <span style="font-size:11px;color:#6b7280">${metricLabel}</span>
       </div>
-      <div style="font-size:11px;color:#6b7280">${formatTs(props.fetched_at)}${synth}</div>
+      <div style="font-size:11px;color:#6b7280">${formatTs(props.fetched_at)}</div>
       <div style="font-size:11px;color:#6b7280">${spacesStr}</div>
     </div>
   `

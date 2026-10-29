@@ -8,6 +8,7 @@ Realistic pattern for German truck parking (Autobahn):
 - Day (10:00–17:00): 30–60 %
 - Evening (17:00–22:00): rising from 50 → 90 %
 
+For isolated development databases only. Do not run against production.
 Run once: python seed_testdata.py
 """
 
@@ -48,7 +49,7 @@ def seed_raw(conn, site_ids: list[str]):
     now = datetime.now(timezone.utc).replace(second=0, microsecond=0)
     # Round down to nearest 15 min
     now = now - timedelta(minutes=now.minute % 15)
-    start = now - timedelta(hours=72)
+    start = max(now - timedelta(hours=72), datetime(2026, 7, 1, tzinfo=timezone.utc))
 
     # Assign a stable per-site factor
     factors = {sid: random.uniform(0.7, 1.3) for sid in site_ids}
@@ -62,7 +63,7 @@ def seed_raw(conn, site_ids: list[str]):
             vacant = None
             occupied = None
             trend = random.choice(["increasing", "decreasing", "stable", "stable"])
-            rows.append((sid, occ, vacant, occupied, trend, "open", "spacesAvailable" if occ < 95 else "full", ts, True))
+            rows.append((sid, occ, vacant, occupied, trend, "open", "spacesAvailable" if occ < 95 else "full", ts))
         ts += timedelta(minutes=15)
 
     log.info("Inserting %d raw rows (72h × %d sites × 96 scrapes) …", len(rows), len(site_ids))
@@ -70,7 +71,7 @@ def seed_raw(conn, site_ids: list[str]):
     sql = """
         INSERT INTO parking_status
             (datex_id, occupancy_pct, vacant_spaces, occupied_spaces,
-             occupancy_trend, opening_status, site_status, fetched_at, is_synthetic)
+             occupancy_trend, opening_status, site_status, fetched_at)
         VALUES %s
         ON CONFLICT DO NOTHING
     """
@@ -90,6 +91,8 @@ def seed_daily(conn, site_ids: list[str]):
     rows = []
     for day_offset in range(180, 0, -1):
         day = today - timedelta(days=day_offset)
+        if day < datetime(2026, 7, 1).date():
+            continue
         # Weekend effect: slightly higher occupancy Fri/Sat night
         weekend_boost = 1.05 if day.weekday() in (4, 5) else 1.0
         for sid in site_ids:
@@ -101,21 +104,20 @@ def seed_daily(conn, site_ids: list[str]):
             min_occ = round(min(samples), 2)
             sorted_s = sorted(samples)
             median_occ = round((sorted_s[47] + sorted_s[48]) / 2, 2)
-            rows.append((sid, day, mean_occ, max_occ, min_occ, median_occ, len(samples), True))
+            rows.append((sid, day, mean_occ, max_occ, min_occ, median_occ, len(samples)))
 
     log.info("Inserting %d daily aggregate rows (180 days × %d sites) …", len(rows), len(site_ids))
 
     sql = """
         INSERT INTO parking_status_daily
-            (datex_id, day, mean_occ, max_occ, min_occ, median_occ, sample_count, is_synthetic)
+            (datex_id, day, mean_occ, max_occ, min_occ, median_occ, sample_count)
         VALUES %s
         ON CONFLICT (datex_id, day) DO UPDATE SET
             mean_occ     = EXCLUDED.mean_occ,
             max_occ      = EXCLUDED.max_occ,
             min_occ      = EXCLUDED.min_occ,
             median_occ   = EXCLUDED.median_occ,
-            sample_count = EXCLUDED.sample_count,
-            is_synthetic = EXCLUDED.is_synthetic
+            sample_count = EXCLUDED.sample_count
     """
     batch = 5000
     for i in range(0, len(rows), batch):

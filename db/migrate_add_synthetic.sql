@@ -1,5 +1,6 @@
 -- Migration: add is_synthetic flag to raw and daily tables
--- Run once on existing databases. Safe to re-run (uses IF NOT EXISTS / DO blocks).
+-- Historical migration only. Superseded by migrate_remove_synthetic.sql.
+-- Do not apply to current installations.
 
 DO $$
 BEGIN

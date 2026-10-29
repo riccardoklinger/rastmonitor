@@ -47,7 +47,6 @@ SELECT
     pst.opening_status,
     pst.site_status,
     pst.fetched_at,
-    pst.is_synthetic,
     ps.location                 AS geom
 FROM parking_sites ps
 JOIN parking_status pst ON ps.datex_id = pst.datex_id
@@ -78,7 +77,6 @@ SELECT
     d.median_occ,
     d.max_occ,
     d.sample_count,
-    d.is_synthetic,
     ps.location                 AS geom
 FROM parking_sites ps
 JOIN parking_status_daily d ON ps.datex_id = d.datex_id

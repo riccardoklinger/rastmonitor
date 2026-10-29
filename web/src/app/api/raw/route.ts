@@ -20,8 +20,7 @@ export async function GET(req: Request) {
        vacant_spaces,
        occupied_spaces,
        site_status,
-       opening_status,
-       is_synthetic
+       opening_status
      FROM parking_status
      WHERE datex_id = $1
        AND fetched_at >= now() - INTERVAL '72 hours'

@@ -34,7 +34,6 @@ export async function GET(req: NextRequest) {
          pst.site_status,
          pst.opening_status,
          pst.fetched_at,
-         pst.is_synthetic,
          pst.vacant_spaces
        FROM parking_sites ps
        LEFT JOIN parking_status pst
@@ -67,7 +66,6 @@ export async function GET(req: NextRequest) {
           site_status: r.site_status,
           opening_status: r.opening_status,
           fetched_at: r.fetched_at,
-          is_synthetic: r.is_synthetic ?? false,
         },
       })),
     }

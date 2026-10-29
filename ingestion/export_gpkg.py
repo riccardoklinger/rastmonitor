@@ -23,7 +23,7 @@ FILENAME = "rastmonitor_daily.gpkg"
 SQL = """
     SELECT s.datex_id, s.name, s.official_spaces, s.total_spaces, s.address,
            d.day, d.mean_occ, d.max_occ, d.min_occ, d.median_occ,
-           d.sample_count, d.is_synthetic, s.location
+           d.sample_count, s.location
     FROM parking_status_daily d
     JOIN parking_sites s USING (datex_id)
     ORDER BY d.day, s.datex_id

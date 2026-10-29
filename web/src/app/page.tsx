@@ -79,7 +79,6 @@ export default function Home() {
       official_spaces: result.official_spaces,
       total_spaces: result.total_spaces,
       vacant_spaces: null,
-      is_synthetic: false,
       occupancy_pct: result.occupancy_pct,
       site_status: null,
       opening_status: null,

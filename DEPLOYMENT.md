@@ -99,14 +99,14 @@ curl -I --user your-download-user https://rast-monitor.de/downloads/rastmonitor_
 Browsers may remember Basic credentials until their session is closed. This is
 a shared download account, not per-user identification or a rate limiter.
 
-## 3. Transfer the database (with synthetic seed data)
+## 3. Transfer an existing database or start with real data
 
 ### Option A — Dump from local dev machine and restore on server
 
 On your **local machine**:
 
 ```bash
-# Dump the full database (static sites + synthetic seed data)
+# Dump the full database (use only verified source data for production)
 docker exec rastmonitor-db-1 pg_dump \
   -U rastmonitor -d rastmonitor \
   --no-owner --no-privileges \
@@ -511,14 +511,102 @@ docker compose exec db psql -U rastmonitor -d rastmonitor -c "
 docker compose exec db pg_dump -U rastmonitor -d rastmonitor -Fc \
   > backup_$(date +%Y%m%d).dump
 
-# Apply a DB migration
-docker compose exec -T db psql -U rastmonitor -d rastmonitor \
-  < db/migrate_add_synthetic.sql
-
 # Pull latest code and redeploy
 git pull
 docker compose up -d --build
 ```
+
+---
+
+## Remove the synthetic field and start the dataset on 1 July 2026
+
+This is a destructive schema migration. It removes `is_synthetic` from raw and
+daily data and recreates the dependent OGC views and materialized snapshot.
+Records before **2026-07-01** are deleted; raw timestamps use **UTC midnight**.
+July 1 itself is retained. Static site records are not deleted. Check constraints
+prevent historical records before the cutoff from being inserted again.
+Existing rolling retention (72 hours / six months, API snapshot 90 days) remains
+unchanged: July 1 is a lower bound, not permanent archival retention.
+
+Do not run the old `migrate_add_synthetic.sql` afterward. The test-data seeder
+is for isolated development databases only, never production.
+
+Allow a short maintenance window. Pull the code, then build before stopping
+services. Do not start the new images until the migration succeeds:
+
+```bash
+docker compose build ingestion web pygeoapi
+```
+
+Create a backup outside the repository. This example uses a private directory:
+
+```bash
+mkdir -p "$HOME/rastmonitor-backups"
+chmod 700 "$HOME/rastmonitor-backups"
+umask 077
+backup="$HOME/rastmonitor-backups/before-cleanup-$(date -u +%Y%m%dT%H%M%SZ).dump"
+docker compose stop ingestion web pygeoapi
+docker compose exec -T db sh -c \
+  'exec pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > "$backup" &&
+docker compose exec -T db pg_restore --list < "$backup" > /dev/null
+```
+
+**Proceed only if the backup and archive-list check succeed.** Copy the backup
+off-server too. Copy the migration directory because the cleanup uses a relative
+include to rebuild the OGC views:
+
+```bash
+docker compose cp ./db db:/tmp/rastmonitor-cleanup-db
+docker compose exec -T db sh -c \
+  'exec psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+    -f /tmp/rastmonitor-cleanup-db/migrate_remove_synthetic.sql'
+```
+
+The migration is transactional and deliberately does not use `CASCADE`. A lock
+timeout or unexpected dependency aborts the transaction; investigate the error
+before restarting updated services. Do not bypass it by adding `CASCADE`.
+Recreated views are owned by the migration user; if you use custom read-only
+roles, reapply their grants before starting those clients.
+
+After success, regenerate the downloadable file before reopening the web service:
+
+```bash
+docker compose run --rm --no-deps --entrypoint /usr/local/bin/python3 \
+  ingestion /app/export_gpkg.py &&
+docker compose up -d --no-deps ingestion web pygeoapi
+```
+
+If export fails, keep web stopped: the previous GeoPackage still contains the
+old fields and records. Fix the export and repeat the command. Regenerate or
+delete any other previously published CSV/GeoPackage copies separately; this
+migration cannot recall files already downloaded by users.
+
+Verify the cutoff and that no public tables/views retain the field:
+
+```bash
+docker compose exec -T db sh -c \
+  'exec psql -X -v ON_ERROR_STOP=1 -P pager=off -U "$POSTGRES_USER" -d "$POSTGRES_DB"' <<'SQL'
+SELECT min(day), count(*) FILTER (WHERE day < DATE '2026-07-01') AS before_cutoff
+FROM parking_status_daily;
+SELECT min(fetched_at),
+       count(*) FILTER (WHERE fetched_at < TIMESTAMPTZ '2026-07-01 00:00:00+00') AS before_cutoff
+FROM parking_status;
+SELECT c.relname, a.attname
+FROM pg_attribute a
+JOIN pg_class c ON c.oid = a.attrelid
+JOIN pg_namespace n ON n.oid = c.relnamespace
+WHERE n.nspname = 'public' AND a.attname = 'is_synthetic'
+  AND a.attnum > 0 AND NOT a.attisdropped;
+SQL
+```
+
+Both `before_cutoff` counts must be zero; the last query must return no rows.
+Check the OGC collection schemas, map charts and authenticated GeoPackage
+download. Restarting pygeoapi regenerates OpenAPI against the new schema.
+Existing QGIS layers may need to be removed and re-added to update cached fields.
+Feature IDs for retained rows are unchanged. Purge any proxy/CDN caches if enabled.
+Recovery of deleted records requires restoring the backup; reverting the code
+alone is not a rollback.
 
 ---
 

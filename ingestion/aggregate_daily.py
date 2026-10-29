@@ -37,8 +37,8 @@ def aggregate(conn, target_day: date):
             GROUP BY datex_id
         )
         INSERT INTO parking_status_daily
-            (datex_id, day, mean_occ, max_occ, min_occ, median_occ, sample_count, is_synthetic)
-        SELECT datex_id, %(day)s, mean_occ, max_occ, min_occ, median_occ, sample_count, true
+            (datex_id, day, mean_occ, max_occ, min_occ, median_occ, sample_count)
+        SELECT datex_id, %(day)s, mean_occ, max_occ, min_occ, median_occ, sample_count
         FROM stats
         ON CONFLICT (datex_id, day) DO UPDATE SET
             mean_occ     = EXCLUDED.mean_occ,
