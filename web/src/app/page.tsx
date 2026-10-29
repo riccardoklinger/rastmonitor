@@ -128,6 +128,7 @@ export default function Home() {
           <a href="/table" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">Tabelle</a>
           <a href="https://rast-monitor.de/ogcapi/" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">API</a>
           <a href="https://github.com/sponsors/riccardoklinger" target="_blank" rel="noopener noreferrer" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">♥ Sponsor</a>
+          <a href="/downloads/rastmonitor_daily.gpkg" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">Download (GPKG)</a>
           <a href="/about" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">Über</a>
           <a href="/impressum" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">Impressum</a>
           <a href="https://github.com/riccardoklinger/rastmonitor" target="_blank" rel="noopener noreferrer" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">GitHub</a>
