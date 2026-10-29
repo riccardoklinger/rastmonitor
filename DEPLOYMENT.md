@@ -61,6 +61,44 @@ CERT_P12=/home/user/certs/certificate.p12
 
 ---
 
+### Protect the GeoPackage download
+
+The static `/downloads/rastmonitor_daily.gpkg` URL requires HTTP Basic
+authentication. Browsers display a username/password prompt. Configure a shared
+download account in `.env`:
+
+```dotenv
+DOWNLOAD_USERNAME=your-download-user
+DOWNLOAD_PASSWORD=your-long-random-password
+```
+
+The username must not contain `:`. Keep credentials out of Git and URLs.
+Use HTTPS: Basic authentication encodes credentials but does not encrypt them.
+The public OGC API is not affected by this download protection.
+
+After setting or rotating credentials, rebuild/recreate the web service:
+
+```bash
+docker compose up -d --build --no-deps web
+```
+
+Without both credentials configured, the download returns HTTP 503. Missing or
+incorrect client credentials return HTTP 401 with a browser authentication
+challenge. Download responses are private and non-cacheable; if this URL was
+previously cached by a CDN or proxy, purge that cached copy before enabling access.
+Do not configure the reverse proxy to serve the exports directory directly.
+
+Verify without credentials (expect 401), then authenticate (curl prompts for the
+password; expect 200 once the first export exists):
+
+```bash
+curl -I https://rast-monitor.de/downloads/rastmonitor_daily.gpkg
+curl -I --user your-download-user https://rast-monitor.de/downloads/rastmonitor_daily.gpkg
+```
+
+Browsers may remember Basic credentials until their session is closed. This is
+a shared download account, not per-user identification or a rate limiter.
+
 ## 3. Transfer the database (with synthetic seed data)
 
 ### Option A — Dump from local dev machine and restore on server

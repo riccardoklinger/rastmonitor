@@ -2,6 +2,7 @@ FROM python:3.12-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     cron \
+    gdal-bin \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -16,7 +17,7 @@ COPY . .
 # - dynamic fetch every 15 minutes
 RUN echo "0 3 * * * { /usr/local/bin/python3 /app/fetch_static.py && /usr/local/bin/python3 /app/refresh_ogcapi_daily.py; } >> /var/log/cron.log 2>&1\n\
 */15 * * * * /usr/local/bin/python3 /app/fetch_dynamic.py >> /var/log/cron.log 2>&1\n\
-0 2 * * * { /usr/local/bin/python3 /app/aggregate_daily.py && /usr/local/bin/python3 /app/refresh_ogcapi_daily.py; } >> /var/log/cron.log 2>&1\n\
+0 2 * * * { /usr/local/bin/python3 /app/aggregate_daily.py && /usr/local/bin/python3 /app/refresh_ogcapi_daily.py && /usr/local/bin/python3 /app/export_gpkg.py; } >> /var/log/cron.log 2>&1\n\
 30 2 * * * /usr/local/bin/python3 /app/prune_raw.py >> /var/log/cron.log 2>&1" \
     | crontab -
 
