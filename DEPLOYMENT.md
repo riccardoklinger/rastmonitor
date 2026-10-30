@@ -63,9 +63,8 @@ CERT_P12=/home/user/certs/certificate.p12
 
 ### Protect the GeoPackage download
 
-The static `/downloads/rastmonitor_daily.gpkg` URL requires HTTP Basic
-authentication. Browsers display a username/password prompt. Configure a shared
-download account in `.env`:
+The burger menu links to `/downloads`, a public information/contact page with a
+custom login form. Configure its shared download account in `.env`:
 
 ```dotenv
 DOWNLOAD_USERNAME=your-download-user
@@ -82,9 +81,18 @@ After setting or rotating credentials, rebuild/recreate the web service:
 docker compose up -d --build --no-deps web
 ```
 
-Without both credentials configured, the download returns HTTP 503. Missing or
-incorrect client credentials return HTTP 401 with a browser authentication
-challenge. Download responses are private and non-cacheable; if this URL was
+Successful login sets an HTTP-only, SameSite=Strict cookie valid for 30 minutes
+(Secure in production). It contains a signed expiry, not the credentials.
+Changing either environment credential and recreating web invalidates existing
+sessions. The page provides logout, which clears that browser's cookie; it does
+not revoke copies of the shared session held elsewhere.
+
+The static `/downloads/rastmonitor_daily.gpkg` URL checks authentication on
+every request. Browser requests without a session go to `/downloads`; HTTP Basic
+authentication remains available for scripts such as curl. Without both server
+credentials configured, the file returns HTTP 503. Missing or incorrect API
+credentials return HTTP 401 with a Basic challenge.
+Download responses are private and non-cacheable; if this URL was
 previously cached by a CDN or proxy, purge that cached copy before enabling access.
 Do not configure the reverse proxy to serve the exports directory directly.
 
@@ -96,8 +104,11 @@ curl -I https://rast-monitor.de/downloads/rastmonitor_daily.gpkg
 curl -I --user your-download-user https://rast-monitor.de/downloads/rastmonitor_daily.gpkg
 ```
 
-Browsers may remember Basic credentials until their session is closed. This is
-a shared download account, not per-user identification or a rate limiter.
+Browsers may remember Basic credentials until their session is closed.
+Logout clears the form's session cookie, not browser-managed Basic credentials.
+This is a shared download account, not per-user identification or a rate limiter.
+Apply login rate limiting at the reverse proxy (POST requests to `/downloads`);
+the login form does not add a distributed brute-force limiter.
 
 ## 3. Transfer an existing database or start with real data
 
