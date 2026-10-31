@@ -29,6 +29,7 @@ export function zoomToFilteredSites(map: Map, data: GeoJSON.GeoJSON, road: strin
   if ((!normalizedRoad && !normalizedOperator) || data.type !== 'FeatureCollection') return
 
   const points: [number, number][] = []
+  let singleMatch: GeoJSON.Feature<GeoJSON.Point> | undefined
   for (const feature of data.features) {
     if (feature.geometry?.type !== 'Point') continue
     const properties = feature.properties
@@ -36,6 +37,7 @@ export function zoomToFilteredSites(map: Map, data: GeoJSON.GeoJSON, road: strin
     if (normalizedOperator && !(properties?.operator_name ?? '').toLowerCase().includes(normalizedOperator)) continue
     const [lng, lat] = feature.geometry.coordinates
     points.push([lng, lat])
+    singleMatch = { ...feature, geometry: feature.geometry }
   }
   if (!points.length) return
 
@@ -49,4 +51,5 @@ export function zoomToFilteredSites(map: Map, data: GeoJSON.GeoJSON, road: strin
   } else {
     map.fitBounds([[west, south], [east, north]], { padding: 60 })
   }
+  return points.length === 1 ? singleMatch : undefined
 }

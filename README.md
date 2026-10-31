@@ -30,8 +30,9 @@ beide Parameter, hat der Betreiberfilter Vorrang; `road` wird aus der URL entfer
 Betreibernamens; `road` filtert nach der Autobahnnummer (z.B. `A2`).
 Beide Filter gelten in allen Zeitansichten; andere Standorte bleiben abgedimmt.
 Beim Setzen eines Filters zoomt die Karte auf den umschließenden Bereich aller
-Treffer, auch beim Öffnen eines Filterlinks. Bei genau einem Treffer wird
-Zoomstufe 8 verwendet. Ohne Treffer oder beim Zurücksetzen aller Filter bleibt
+Treffer, auch beim Öffnen eines Filterlinks. Bei genau einem Treffer werden
+automatisch das Karten-Popup und die Detailseitenleiste geöffnet.
+Ohne Treffer oder beim Zurücksetzen aller Filter bleibt
 der Kartenausschnitt unverändert. Automatische Datenaktualisierungen verschieben
 die Karte nicht.
 

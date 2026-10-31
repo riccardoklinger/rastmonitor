@@ -95,6 +95,30 @@ function zoom(features, road, operator) {
   return JSON.parse(JSON.stringify(calls))
 }
 
+test('a single filter result returns the full feature for automatic popup and details selection', () => {
+  const match = site(10, 52)
+  match.properties = { ...match.properties, datex_id: 'DE-HE-1', name: 'Test', city: 'Kassel', occupancy_pct: 75 }
+  const map = { flyTo() {}, fitBounds() {} }
+  const result = mapFilters.zoomToFilteredSites(map, {
+    type: 'FeatureCollection', features: [match, site(14, 54, 'A4')],
+  }, 'A2', '')
+  assert.equal(result.properties, match.properties)
+  assert.equal(result.geometry, match.geometry)
+})
+
+test('multiple, coincident, missing and unfiltered results do not request automatic details', () => {
+  const map = { flyTo() {}, fitBounds() {} }
+  for (const [features, road, operator] of [
+    [[site(10, 52), site(11, 53)], 'A2', ''],
+    [[site(10, 52), site(10, 52)], 'A2', ''],
+    [[site(10, 52)], 'A4', ''],
+    [[], 'A2', ''],
+    [[site(10, 52)], '', ''],
+  ]) {
+    assert.equal(mapFilters.zoomToFilteredSites(map, { type: 'FeatureCollection', features }, road, operator), undefined)
+  }
+})
+
 test('one matching site centers the map at exactly zoom 8', () => {
   assert.deepEqual(zoom([site(10, 52), site(14, 54, 'A4')], 'a2', ''), [
     { method: 'flyTo', options: { center: [10, 52], zoom: 8 } },

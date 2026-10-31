@@ -215,11 +215,17 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
         void fitPendingFilters()
         return
       }
-      zoomToFilteredSites(map, data, roadFilterRef.current, operatorFilterRef.current)
+      const singleMatch = zoomToFilteredSites(map, data, roadFilterRef.current, operatorFilterRef.current)
+      if (singleMatch) {
+        const [lng, lat] = singleMatch.geometry.coordinates
+        const site = singleMatch.properties as SiteProperties
+        showSitePopup(map, [lng, lat], site, metricLabelRef.current)
+        onSiteSelect(site)
+      }
     } catch (error) {
       console.error('Could not zoom to filtered sites:', error)
     }
-  }, [])
+  }, [onSiteSelect])
 
   useEffect(() => {
     const dismissMenu = (event: PointerEvent) => {
