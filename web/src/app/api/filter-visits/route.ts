@@ -14,7 +14,7 @@ export async function POST(request: Request) {
   }
   const params = new URLSearchParams()
   for (const [name, value] of Object.entries(body)) {
-    if (name !== 'operator' && name !== 'road') continue
+    if (name !== 'operator' && name !== 'road' && name !== 'state') continue
     if (typeof value !== 'string' || value.length > 200 || value.includes('\0')) {
       return NextResponse.json({ error: 'Invalid filter value (maximum 200 characters)' }, { status: 400 })
     }

@@ -84,6 +84,17 @@ the filter tools. Counts require the browser's tracking request to succeed.
 
 ### Site address details
 
+For Bundesland filter-link counters, apply the following migration after the
+filter-link table exists and before rebuilding web:
+
+```bash
+docker compose exec -T db sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < db/migrate_add_state_filter_views.sql
+```
+
+The Bundesland tool uses the address columns and populated state names described
+below; links use `?state=Hessen`. The existing visits report includes state counts
+automatically.
+
 Apply the address migration before deploying the updated web and ingestion
 services. Then refresh static data to populate the new columns:
 

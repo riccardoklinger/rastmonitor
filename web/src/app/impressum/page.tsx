@@ -43,7 +43,7 @@ export default function Impressum() {
           <p>
             Zugriffe werden gezählt, um den Betrieb und die Last der Website zu überwachen.
             Gespeichert werden tägliche Summen der Seitenaufrufe sowie der Aufrufe von
-            Filterlinks mit den Parametern Betreiber und Autobahn. Bei Filterlinks werden
+            Filterlinks mit den Parametern Betreiber, Autobahn und Bundesland. Bei Filterlinks werden
             zusätzlich der Parameter und sein Wert gespeichert. Diese Zählung dient dem
             Betrieb, nicht der Auswertung von Personen. Für diese Statistik werden keine
             IP-Adressen oder Benutzerkennungen gespeichert und keine Cookies gesetzt.

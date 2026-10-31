@@ -20,15 +20,18 @@ rastmonitor visualisiert die aktuelle und historische Belegung von LKW-Rastplät
 
 ### Teilbare Kartenfilter
 
-Die Werkzeuge **Betreiber** und **Autobahn** aktualisieren die URL. Filterlinks
+Die Werkzeuge **Betreiber**, **Autobahn** und **Bundesland** aktualisieren die URL. Filterlinks
 lassen sich direkt öffnen, z.B.
-`https://rast-monitor.de/?operator=Autobahn` oder `https://rast-monitor.de/?road=A2`.
-Es ist immer nur ein Filter aktiv: Die Auswahl eines Betreibers setzt den
-Autobahnfilter zurück und umgekehrt, auch in der URL. Enthält ein älterer Link
-beide Parameter, hat der Betreiberfilter Vorrang; `road` wird aus der URL entfernt.
+`https://rast-monitor.de/?operator=Autobahn`, `https://rast-monitor.de/?road=A2`
+oder `https://rast-monitor.de/?state=Hessen`.
+Es ist immer nur ein Filter aktiv: Eine Auswahl setzt die anderen Filter zurück,
+auch in der URL. Enthält ein Link mehrere Parameter, hat Bundesland Vorrang vor
+Betreiber und Autobahn; die inaktiven Parameter werden aus der URL entfernt.
 `operator` sucht ohne Beachtung der Groß-/Kleinschreibung nach einem Teil des
 Betreibernamens; `road` filtert nach der Autobahnnummer (z.B. `A2`).
-Beide Filter gelten in allen Zeitansichten; andere Standorte bleiben abgedimmt.
+`state` vergleicht den vollständigen Bundeslandnamen ohne Beachtung der
+Groß-/Kleinschreibung. Standorte ohne bekanntes Bundesland werden nicht zugeordnet.
+Alle Filter gelten in allen Zeitansichten; andere Standorte bleiben abgedimmt.
 Beim Setzen eines Filters zoomt die Karte auf den umschließenden Bereich aller
 Treffer, auch beim Öffnen eines Filterlinks. Bei genau einem Treffer werden
 automatisch das Karten-Popup und die Detailseitenleiste geöffnet.

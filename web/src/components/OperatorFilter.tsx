@@ -6,9 +6,11 @@ import { RefreshCw, X } from 'lucide-react'
 interface OperatorFilterProps {
   value: string
   onSelect: (operator: string) => void
+  kind?: 'operator' | 'state'
 }
 
-export default function OperatorFilter({ value, onSelect }: OperatorFilterProps) {
+export default function OperatorFilter({ value, onSelect, kind = 'operator' }: OperatorFilterProps) {
+  const label = kind === 'state' ? 'Bundesland' : 'Betreiber'
   const [query, setQuery] = useState(value)
   const [operators, setOperators] = useState<string[]>([])
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
@@ -22,7 +24,7 @@ export default function OperatorFilter({ value, onSelect }: OperatorFilterProps)
   useEffect(() => {
     const controller = new AbortController()
     setStatus('loading')
-    fetch('/api/operators', { signal: controller.signal })
+    fetch(kind === 'state' ? '/api/states' : '/api/operators', { signal: controller.signal })
       .then(async response => {
         if (!response.ok) throw new Error('Operator list unavailable')
         const data: unknown = await response.json()
@@ -38,12 +40,12 @@ export default function OperatorFilter({ value, onSelect }: OperatorFilterProps)
         if (!controller.signal.aborted) setStatus('error')
       })
     return () => controller.abort()
-  }, [attempt])
+  }, [attempt, kind])
 
   const normalizedQuery = query.trim().toLowerCase()
   const options = normalizedQuery
     ? operators.filter(op => op.toLowerCase().includes(normalizedQuery)).map(op => ({ value: op, label: op }))
-    : [{ value: '', label: 'Alle Betreiber' }, ...operators.map(op => ({ value: op, label: op }))]
+    : [{ value: '', label: kind === 'state' ? 'Alle Bundesländer' : 'Alle Betreiber' }, ...operators.map(op => ({ value: op, label: op }))]
 
   useEffect(() => {
     listRef.current?.children[active]?.scrollIntoView({ block: 'nearest' })
@@ -52,7 +54,7 @@ export default function OperatorFilter({ value, onSelect }: OperatorFilterProps)
   return (
     <div className="overflow-hidden rounded bg-white shadow-md">
       <div className="flex items-center gap-2 px-3 py-2">
-        <label htmlFor={inputId} className="text-xs font-medium text-gray-600">Betreiber</label>
+        <label htmlFor={inputId} className="text-xs font-medium text-gray-600">{label}</label>
         <input
           id={inputId}
           autoFocus
@@ -80,21 +82,21 @@ export default function OperatorFilter({ value, onSelect }: OperatorFilterProps)
               if (option) onSelect(option.value)
             }
           }}
-          placeholder="z.B. Autobahn"
+          placeholder={kind === 'state' ? 'z.B. Hessen' : 'z.B. Autobahn'}
           className="min-w-0 flex-1 border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-400"
         />
         {value && (
           <button
             onClick={() => onSelect('')}
-            aria-label="Betreiberfilter zurücksetzen"
-            title="Betreiberfilter zurücksetzen"
+            aria-label={`${label}filter zurücksetzen`}
+            title={`${label}filter zurücksetzen`}
             className="flex h-7 w-7 flex-shrink-0 items-center justify-center text-gray-400 hover:text-gray-700"
           >
             <X size={14} aria-hidden="true" />
           </button>
         )}
       </div>
-      <ul ref={listRef} id={listId} role="listbox" aria-label="Betreiber" className="max-h-[min(18rem,40dvh)] overflow-y-auto border-t border-gray-100">
+      <ul ref={listRef} id={listId} role="listbox" aria-label={label} className="max-h-[min(18rem,40dvh)] overflow-y-auto border-t border-gray-100">
         {options.map((option, index) => (
           <li
             key={option.value}
@@ -111,10 +113,10 @@ export default function OperatorFilter({ value, onSelect }: OperatorFilterProps)
         ))}
       </ul>
       {status === 'loading' && <p role="status" className="px-3 py-2 text-xs text-gray-500">Wird geladen...</p>}
-      {status === 'ready' && options.length === 0 && <p role="status" className="px-3 py-2 text-xs text-gray-500">Kein passender Betreiber</p>}
+      {status === 'ready' && options.length === 0 && <p role="status" className="px-3 py-2 text-xs text-gray-500">Keine passenden Ergebnisse</p>}
       {status === 'error' && (
         <div role="alert" className="flex items-center gap-2 px-3 py-2 text-xs text-red-700">
-          <span>Betreiber konnten nicht geladen werden.</span>
+          <span>{label} konnte nicht geladen werden.</span>
           <button onClick={() => setAttempt(previous => previous + 1)} aria-label="Erneut laden" title="Erneut laden" className="flex h-8 w-8 flex-shrink-0 items-center justify-center">
             <RefreshCw size={16} aria-hidden="true" />
           </button>

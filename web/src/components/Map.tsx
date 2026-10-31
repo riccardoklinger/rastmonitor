@@ -56,6 +56,7 @@ interface MapProps {
   metricLabel?: string
   operatorFilter?: string
   roadFilter?: string
+  stateFilter?: string
 }
 
 // Override with /api/map-style to use the self-hosted Martin tile server.
@@ -182,7 +183,7 @@ function showSitePopup(map: maplibregl.Map, lngLat: maplibregl.LngLatLike, site:
 }
 
 const Map = forwardRef<MapHandle, MapProps>(function Map(
-  { onSiteSelect, dataUrl = '/api/sites', metricLabel = 'Auslastung', operatorFilter = '', roadFilter = '' },
+  { onSiteSelect, dataUrl = '/api/sites', metricLabel = 'Auslastung', operatorFilter = '', roadFilter = '', stateFilter = '' },
   ref
 ) {
   const containerRef    = useRef<HTMLDivElement>(null)
@@ -190,6 +191,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
   const dataUrlRef      = useRef(dataUrl)
   const metricLabelRef  = useRef(metricLabel)
   const roadFilterRef   = useRef(roadFilter)
+  const stateFilterRef = useRef(stateFilter)
   const operatorFilterRef = useRef(operatorFilter)
   const filterRevisionRef = useRef(0)
   const pendingFilterZoomRef = useRef(true)
@@ -215,7 +217,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
         void fitPendingFilters()
         return
       }
-      const singleMatch = zoomToFilteredSites(map, data, roadFilterRef.current, operatorFilterRef.current)
+      const singleMatch = zoomToFilteredSites(map, data, roadFilterRef.current, operatorFilterRef.current, stateFilterRef.current)
       if (singleMatch) {
         const [lng, lat] = singleMatch.geometry.coordinates
         const site = singleMatch.properties as SiteProperties
@@ -270,11 +272,12 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
   useEffect(() => {
     operatorFilterRef.current = operatorFilter
     roadFilterRef.current = roadFilter
+    stateFilterRef.current = stateFilter
     filterRevisionRef.current++
-    pendingFilterZoomRef.current = Boolean(roadFilter.trim() || operatorFilter.trim())
-    if (mapRef.current) applyFilters(mapRef.current, roadFilter, operatorFilter)
+    pendingFilterZoomRef.current = Boolean(roadFilter.trim() || operatorFilter.trim() || stateFilter.trim())
+    if (mapRef.current) applyFilters(mapRef.current, roadFilter, operatorFilter, stateFilter)
     void fitPendingFilters()
-  }, [operatorFilter, roadFilter, fitPendingFilters])
+  }, [operatorFilter, roadFilter, stateFilter, fitPendingFilters])
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
@@ -337,7 +340,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
         },
       }, 'parking-circles') // insert below main layer so main layer renders on top
 
-      applyFilters(map, roadFilterRef.current, operatorFilterRef.current)
+      applyFilters(map, roadFilterRef.current, operatorFilterRef.current, stateFilterRef.current)
     })
 
     map.on('sourcedataloading', (e) => {

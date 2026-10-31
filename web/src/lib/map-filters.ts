@@ -1,8 +1,11 @@
 import type { ExpressionSpecification, Map } from 'maplibre-gl'
 
-export function applyFilters(map: Map, road: string, operator: string) {
+export function applyFilters(map: Map, road: string, operator: string, state = '') {
   if (!map.getLayer('parking-circles')) return
   const conditions: ExpressionSpecification[] = []
+  if (state.trim()) {
+    conditions.push(['==', ['downcase', ['coalesce', ['get', 'state_name'], '']], state.trim().toLowerCase()])
+  }
   if (road.trim()) {
     conditions.push(['==', ['upcase', ['coalesce', ['get', 'road_identifier'], '']], road.trim().toUpperCase()])
   }
@@ -23,16 +26,18 @@ export function applyFilters(map: Map, road: string, operator: string) {
   map.setFilter('parking-circles', match)
 }
 
-export function zoomToFilteredSites(map: Map, data: GeoJSON.GeoJSON, road: string, operator: string) {
+export function zoomToFilteredSites(map: Map, data: GeoJSON.GeoJSON, road: string, operator: string, state = '') {
   const normalizedRoad = road.trim().toUpperCase()
   const normalizedOperator = operator.trim().toLowerCase()
-  if ((!normalizedRoad && !normalizedOperator) || data.type !== 'FeatureCollection') return
+  const normalizedState = state.trim().toLowerCase()
+  if ((!normalizedRoad && !normalizedOperator && !normalizedState) || data.type !== 'FeatureCollection') return
 
   const points: [number, number][] = []
   let singleMatch: GeoJSON.Feature<GeoJSON.Point> | undefined
   for (const feature of data.features) {
     if (feature.geometry?.type !== 'Point') continue
     const properties = feature.properties
+    if (normalizedState && (properties?.state_name ?? '').toLowerCase() !== normalizedState) continue
     if (normalizedRoad && (properties?.road_identifier ?? '').toUpperCase() !== normalizedRoad) continue
     if (normalizedOperator && !(properties?.operator_name ?? '').toLowerCase().includes(normalizedOperator)) continue
     const [lng, lat] = feature.geometry.coordinates

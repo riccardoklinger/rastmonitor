@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { Building2, List, Menu, Route, Search } from 'lucide-react'
+import { Building2, List, MapPinned, Menu, Route, Search } from 'lucide-react'
 import RoadFilter from '@/components/RoadFilter'
 import OperatorFilter from '@/components/OperatorFilter'
 import { activeMapFilter, readUrlFilters, updateFilterUrl } from '@/lib/filter-url'
@@ -35,18 +35,22 @@ export default function Home() {
   const [operatorFilter, setOperatorFilter] = useState('')
   const [operatorToolOpen, setOperatorToolOpen] = useState(false)
   const linkCountedRef = useRef(false)
+  const stateToolRef = useRef<HTMLDetailsElement>(null)
+  const [stateFilter, setStateFilter] = useState('')
+  const [stateToolOpen, setStateToolOpen] = useState(false)
 
   useEffect(() => {
     const filters = readUrlFilters(new URLSearchParams(window.location.search))
     const active = activeMapFilter(filters)
     setOperatorFilter(active.operator)
     setRoadFilter(active.road)
-    if (filters.operator && filters.road) {
-      window.history.replaceState(window.history.state, '', updateFilterUrl(new URL(window.location.href), 'operator', active.operator))
+    setStateFilter(active.state)
+    if ([filters.operator, filters.road, filters.state].filter(Boolean).length > 1) {
+      window.history.replaceState(window.history.state, '', updateFilterUrl(new URL(window.location.href), active.state ? 'state' : 'operator', active.state || active.operator))
     }
     if (linkCountedRef.current) return
     linkCountedRef.current = true
-    if (!filters.operator && !filters.road) return
+    if (!filters.operator && !filters.road && !filters.state) return
     fetch('/api/filter-visits', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -82,6 +86,7 @@ export default function Home() {
   const handleRoadFilter = useCallback((val: string) => {
     setRoadFilter(val)
     if (val) setOperatorFilter('')
+    if (val) setStateFilter('')
     window.history.replaceState(window.history.state, '', updateFilterUrl(new URL(window.location.href), 'road', val))
     if (roadToolRef.current) {
       roadToolRef.current.open = false
@@ -92,10 +97,24 @@ export default function Home() {
   const handleOperatorFilter = useCallback((val: string) => {
     setOperatorFilter(val)
     if (val) setRoadFilter('')
+    if (val) setStateFilter('')
     window.history.replaceState(window.history.state, '', updateFilterUrl(new URL(window.location.href), 'operator', val))
     if (operatorToolRef.current) {
       operatorToolRef.current.open = false
       operatorToolRef.current.querySelector('summary')?.focus()
+    }
+  }, [])
+
+  const handleStateFilter = useCallback((val: string) => {
+    setStateFilter(val)
+    if (val) {
+      setOperatorFilter('')
+      setRoadFilter('')
+    }
+    window.history.replaceState(window.history.state, '', updateFilterUrl(new URL(window.location.href), 'state', val))
+    if (stateToolRef.current) {
+      stateToolRef.current.open = false
+      stateToolRef.current.querySelector('summary')?.focus()
     }
   }, [])
 
@@ -145,7 +164,7 @@ export default function Home() {
     <main className="relative w-screen h-screen overflow-hidden">
       {/* Map fills everything except the bottom control bar */}
       <div className="absolute inset-0 bottom-14">
-        <Map ref={mapRef} onSiteSelect={setSelectedSite} dataUrl={dataUrl} metricLabel={metricLabel} operatorFilter={operatorFilter} roadFilter={roadFilter} />
+        <Map ref={mapRef} onSiteSelect={setSelectedSite} dataUrl={dataUrl} metricLabel={metricLabel} operatorFilter={operatorFilter} roadFilter={roadFilter} stateFilter={stateFilter} />
       </div>
 
       {selectedSite && (
@@ -247,6 +266,20 @@ export default function Home() {
           </summary>
           <div className="absolute top-0 right-[39px] w-72 max-w-[calc(100vw-59px)]">
             {operatorToolOpen && <OperatorFilter value={operatorFilter} onSelect={handleOperatorFilter} />}
+          </div>
+        </details>
+
+        <details ref={stateToolRef} name="map-tools" className="relative" onToggle={event => setStateToolOpen(event.currentTarget.open)}>
+          <summary
+            aria-label="Bundesland filtern"
+            title={stateFilter ? `Bundesland filtern: ${stateFilter}` : 'Bundesland filtern'}
+            data-active={Boolean(stateFilter)}
+            className="map-toolbar-button"
+          >
+            <MapPinned size={18} aria-hidden="true" />
+          </summary>
+          <div className="absolute top-0 right-[39px] w-72 max-w-[calc(100vw-59px)]">
+            {stateToolOpen && <OperatorFilter kind="state" value={stateFilter} onSelect={handleStateFilter} />}
           </div>
         </details>
 

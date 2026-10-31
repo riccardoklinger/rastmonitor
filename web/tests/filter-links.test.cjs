@@ -211,6 +211,71 @@ test('legacy combined links activate only the operator, while road-only and empt
   }
 })
 
+test('Bundesland links are exclusive, decoded, and take priority over other filters', () => {
+  const parsed = filters.readUrlFilters(new URLSearchParams('state=Th%C3%BCringen&road=A2&operator=Autobahn'))
+  assert.equal(parsed.state, 'Thüringen')
+  const active = filters.activeMapFilter(parsed)
+  assert.equal(active.state, 'Thüringen')
+  assert.equal(active.road, '')
+  assert.equal(active.operator, '')
+  const url = new URL('https://example.test/?operator=Autobahn&road=A2&other=keep#map')
+  filters.updateFilterUrl(url, 'state', 'Hessen')
+  assert.equal(url.searchParams.get('state'), 'Hessen')
+  assert.equal(url.searchParams.has('operator'), false)
+  assert.equal(url.searchParams.has('road'), false)
+  filters.updateFilterUrl(url, 'road', 'A5')
+  assert.equal(url.searchParams.has('state'), false)
+  filters.updateFilterUrl(url, 'state', 'Bayern')
+  filters.updateFilterUrl(url, 'operator', 'Autobahn')
+  assert.equal(url.searchParams.has('state'), false)
+  assert.equal(url.searchParams.get('other'), 'keep')
+  assert.equal(url.hash, '#map')
+})
+
+test('Bundesland matching and camera use exact state names, excluding unknown states', () => {
+  const calls = []
+  const map = {
+    getLayer: () => true,
+    setFilter: (layer, value) => calls.push([layer, value]),
+    setLayoutProperty() {},
+    flyTo() {},
+    fitBounds() {},
+  }
+  mapFilters.applyFilters(map, '', '', ' HESSEN ')
+  const expression = calls.find(([layer]) => layer === 'parking-circles')[1]
+  assert.equal(expression[0], '==')
+  assert.equal(expression[1][1][1][1], 'state_name')
+  assert.equal(expression[2], 'hessen')
+  const hessen = site(9, 50)
+  hessen.properties.state_name = 'Hessen'
+  const lowerSaxony = site(10, 52)
+  lowerSaxony.properties.state_name = 'Niedersachsen'
+  const data = { type: 'FeatureCollection', features: [hessen, lowerSaxony, site(11, 51)] }
+  assert.equal(mapFilters.zoomToFilteredSites(map, data, '', '', 'hessen').properties, hessen.properties)
+  assert.equal(mapFilters.zoomToFilteredSites(map, data, '', '', 'Hess'), undefined)
+})
+
+test('Bundesland filter opens are recorded in daily counters', async () => {
+  const calls = []
+  const post = counter(async (...args) => calls.push(args))
+  assert.equal((await post(request({ state: ' Hessen ' }))).status, 204)
+  assert.equal(JSON.stringify(calls[0][1]), JSON.stringify([['state'], ['Hessen']]))
+})
+
+test('Bundesland list is loaded from stored state names and sorted for the tool', async () => {
+  const handler = loadTypescript('app/api/states/route.ts', {
+    'next/server': { NextResponse: Response },
+    '@/lib/db': { default: {
+      async query(sql) {
+        assert.match(sql, /state_name IS NOT NULL/)
+        return { rows: [{ state: 'Niedersachsen' }, { state: 'Hessen' }, { state: 'Bayern' }] }
+      },
+    } },
+  }).GET
+  const response = await handler()
+  assert.deepEqual(await response.json(), ['Bayern', 'Hessen', 'Niedersachsen'])
+})
+
 function counter(query) {
   return loadTypescript('app/api/filter-visits/route.ts', {
     'next/server': { NextResponse: Response },
