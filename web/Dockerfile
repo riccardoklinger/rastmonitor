@@ -9,7 +9,7 @@ RUN npm install --frozen-lockfile || npm install
 
 # Build
 FROM base AS builder
-ARG NEXT_PUBLIC_MAP_STYLE=https://sgx.geodatenzentrum.de/gdz_basemapde_vektor/styles/bm_web_col.json
+ARG NEXT_PUBLIC_MAP_STYLE=https://sgx.geodatenzentrum.de/gdz_basemapde_vektor/styles/bm_web_gry.json
 ENV NEXT_PUBLIC_MAP_STYLE=$NEXT_PUBLIC_MAP_STYLE
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .

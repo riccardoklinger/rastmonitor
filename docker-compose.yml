@@ -66,7 +66,7 @@ services:
     build:
       context: ./web
       args:
-        NEXT_PUBLIC_MAP_STYLE: ${NEXT_PUBLIC_MAP_STYLE:-https://sgx.geodatenzentrum.de/gdz_basemapde_vektor/styles/bm_web_col.json}
+        NEXT_PUBLIC_MAP_STYLE: ${NEXT_PUBLIC_MAP_STYLE:-https://sgx.geodatenzentrum.de/gdz_basemapde_vektor/styles/bm_web_gry.json}
     restart: unless-stopped
     depends_on:
       db:
@@ -79,7 +79,7 @@ services:
       EXPORT_DIR: /exports
       DOWNLOAD_USERNAME: ${DOWNLOAD_USERNAME:-}
       DOWNLOAD_PASSWORD: ${DOWNLOAD_PASSWORD:-}
-      NEXT_PUBLIC_MAP_STYLE: ${NEXT_PUBLIC_MAP_STYLE:-https://sgx.geodatenzentrum.de/gdz_basemapde_vektor/styles/bm_web_col.json}
+      NEXT_PUBLIC_MAP_STYLE: ${NEXT_PUBLIC_MAP_STYLE:-https://sgx.geodatenzentrum.de/gdz_basemapde_vektor/styles/bm_web_gry.json}
     volumes:
       - exports:/exports:ro
     ports:

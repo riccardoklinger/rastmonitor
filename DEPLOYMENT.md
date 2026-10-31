@@ -45,7 +45,10 @@ Fill in all values:
 | `P12_PASSWORD` | Password for the `.p12` file |
 | `MARTIN_URL` | Leave as `http://martin:3000` (internal Docker network) |
 
-> **Do not set `NEXT_PUBLIC_MAP_STYLE`** in production — leave it unset so the self-hosted Martin tile server is used.
+> Leave `NEXT_PUBLIC_MAP_STYLE` unset to use **BKG Grau** by default. To use the
+> self-hosted Martin tile server instead, set it to `/api/map-style`.
+> An existing explicit style override takes precedence; remove or update it to
+> switch to grey. Rebuild the web image after changing this build-time setting.
 
 Upload your certificate to the server:
 

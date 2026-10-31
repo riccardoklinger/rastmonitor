@@ -50,9 +50,8 @@ interface MapProps {
   roadFilter?: string
 }
 
-// Self-hosted by default (/api/map-style → Martin tile server via Next.js proxy).
-// For local dev without tiles, set NEXT_PUBLIC_MAP_STYLE to a remote style URL.
-const MAP_STYLE = process.env.NEXT_PUBLIC_MAP_STYLE ?? '/api/map-style'
+// Override with /api/map-style to use the self-hosted Martin tile server.
+const MAP_STYLE = process.env.NEXT_PUBLIC_MAP_STYLE || 'https://sgx.geodatenzentrum.de/gdz_basemapde_vektor/styles/bm_web_gry.json'
 
 function rasterStyle(tiles: string, attribution: string, maxzoom: number): maplibregl.StyleSpecification {
   return {

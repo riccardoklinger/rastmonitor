@@ -66,12 +66,13 @@ Die XSD-Schemata der DATEX-II-Daten liegen unter [`static/xsd/`](./static/xsd/).
 
 ### Hintergrundkarten
 
-Der Ebenen-Button rechts oben bietet BKG Farbe, Grau, Relief, TopPlusOpen Light,
+Standardmäßig wird BKG Grau verwendet, damit die farbigen Parkplatzpunkte
+deutlicher hervortreten. Der Ebenen-Button rechts oben bietet BKG Farbe, Grau, Relief, TopPlusOpen Light,
 TopPlusOpen Light Grau und Esri World Imagery. Die konfigurierte
 Standardkarte bleibt ebenfalls erreichbar. Beim Wechsel bleiben Kartenausschnitt,
 Zeitansicht und Autobahnfilter erhalten.
 
-Die alternativen Karten laden Styles und Kacheln direkt von BKG bzw. Esri; diese
+Die BKG- und Esri-Karten laden Styles und Kacheln direkt vom jeweiligen Anbieter; diese
 Anfragen verlassen die eigene Domain. Die Quellenvermerke erscheinen auf der Karte.
 Esri World Imagery unterliegt den
 [Esri-Nutzungsbedingungen](https://www.arcgis.com/home/item.html?id=10df2279f9684e4a9f6a7f08febac2a9).
