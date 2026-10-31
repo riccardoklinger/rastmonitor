@@ -199,6 +199,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
   const roadFilterRef   = useRef('')
   const basemapMenuRef  = useRef<HTMLDetailsElement>(null)
   const [basemapMenuOpen, setBasemapMenuOpen] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [basemapId, setBasemapId] = useState(
     BASEMAPS.find(basemap => basemap.id !== 'default' && basemap.style === MAP_STYLE)?.id ?? 'default'
   )
@@ -315,6 +316,14 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
       applyRoadFilter(map, roadFilterRef.current)
     })
 
+    map.on('sourcedataloading', (e) => {
+      if (e.sourceId === 'parking') setLoading(true)
+    })
+    map.on('sourcedata', (e) => {
+      if (e.sourceId === 'parking' && map.isSourceLoaded('parking')) setLoading(false)
+    })
+    map.on('error', () => setLoading(false))
+
     // Pointer cursor on hover
     map.on('mouseenter', 'parking-circles', () => {
       map.getCanvas().style.cursor = 'pointer'
@@ -353,6 +362,12 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
   return (
     <div className="relative w-full h-full">
       <div ref={containerRef} className="w-full h-full" />
+      {loading && (
+        <div role="status" aria-live="polite" className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-2 bg-white/60">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-300 border-t-blue-600" />
+          <span className="text-sm font-medium text-gray-700">Loading</span>
+        </div>
+      )}
       <details ref={basemapMenuRef} name="map-tools" onToggle={event => setBasemapMenuOpen(event.currentTarget.open)} className="absolute top-[49px] right-[10px] z-20 text-sm">
         <summary
           aria-label="Hintergrundkarte wählen"
