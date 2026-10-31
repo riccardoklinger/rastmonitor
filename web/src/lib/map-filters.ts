@@ -45,7 +45,7 @@ export function zoomToFilteredSites(map: Map, data: GeoJSON.GeoJSON, road: strin
   const south = Math.min(...points.map(([, lat]) => lat))
   const north = Math.max(...points.map(([, lat]) => lat))
   if (points.length === 1 || (west === east && south === north)) {
-    map.flyTo({ center: first, zoom: 8 })
+    map.flyTo({ center: first, zoom: 10 })
   } else {
     map.fitBounds([[west, south], [east, north]], { padding: 60 })
   }
