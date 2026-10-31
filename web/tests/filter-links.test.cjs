@@ -22,6 +22,77 @@ function loadTypescript(path, imports = {}) {
 }
 
 const filters = loadTypescript('lib/filter-url.ts')
+const mapFilters = loadTypescript('lib/map-filters.ts')
+
+function site(lng, lat, road = 'A2', operator = 'Die Autobahn GmbH') {
+  return {
+    type: 'Feature',
+    geometry: { type: 'Point', coordinates: [lng, lat] },
+    properties: { road_identifier: road, operator_name: operator },
+  }
+}
+
+function zoom(features, road, operator) {
+  const calls = []
+  mapFilters.zoomToFilteredSites({
+    flyTo: options => calls.push({ method: 'flyTo', options }),
+    fitBounds: (bounds, options) => calls.push({ method: 'fitBounds', bounds, options }),
+  }, { type: 'FeatureCollection', features }, road, operator)
+  return JSON.parse(JSON.stringify(calls))
+}
+
+test('one matching site centers the map at exactly zoom 8', () => {
+  assert.deepEqual(zoom([site(10, 52), site(14, 54, 'A4')], 'a2', ''), [
+    { method: 'flyTo', options: { center: [10, 52], zoom: 8 } },
+  ])
+})
+
+test('multiple matches fit the complete bounding box, excluding dimmed sites', () => {
+  assert.deepEqual(zoom([
+    site(6, 53), site(13, 49), site(9, 55),
+    site(15, 47, 'A4'), site(5, 48, 'A2', 'Other'),
+  ], ' A2 ', ' autoBAHN '), [
+    { method: 'fitBounds', bounds: [[6, 49], [13, 55]], options: { padding: 60 } },
+  ])
+})
+
+test('operator-only filtering is case-insensitive and uses substring matching', () => {
+  assert.deepEqual(zoom([site(10, 52, 'A4'), site(11, 51, 'A2', 'Other')], '', 'AUTOBAHN'), [
+    { method: 'flyTo', options: { center: [10, 52], zoom: 8 } },
+  ])
+})
+
+test('no active filters, no matches and empty data leave the camera unchanged', () => {
+  assert.deepEqual(zoom([site(10, 52)], '', ''), [])
+  assert.deepEqual(zoom([site(10, 52)], 'A4', ''), [])
+  assert.deepEqual(zoom([], 'A2', ''), [])
+  assert.deepEqual(zoom([site(10, 52, null, null)], 'A2', 'Autobahn'), [])
+})
+
+test('coincident sites also use zoom 8 instead of a degenerate bounding box', () => {
+  assert.deepEqual(zoom([site(10, 52), site(10, 52)], 'A2', ''), [
+    { method: 'flyTo', options: { center: [10, 52], zoom: 8 } },
+  ])
+})
+
+test('combined map layer filters dim precisely the complement of active sites', () => {
+  const calls = []
+  const map = {
+    getLayer: () => true,
+    setFilter: (layer, filter) => calls.push([layer, filter]),
+    setLayoutProperty: () => {},
+  }
+  mapFilters.applyFilters(map, 'a2', 'AUTOBAHN')
+  const dim = calls.find(([layer]) => layer === 'parking-circles-dim')[1]
+  const main = calls.find(([layer]) => layer === 'parking-circles')[1]
+  assert.equal(main[0], 'all')
+  assert.equal(main[1][2], 'A2')
+  assert.equal(main[2][1][1], 'autobahn')
+  assert.equal(dim[0], '!')
+  assert.equal(dim[1], main)
+  mapFilters.applyFilters(map, '', '')
+  assert.equal(calls.at(-1)[1], null)
+})
 
 test('reads and normalizes combined, encoded and empty URL filters', () => {
   const result = filters.readUrlFilters(new URLSearchParams('operator=Die+Autobahn+GmbH&road=+a+2+'))

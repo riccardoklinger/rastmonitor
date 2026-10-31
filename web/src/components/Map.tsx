@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react'
+import { useCallback, useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react'
 import maplibregl from 'maplibre-gl'
 import { Layers } from 'lucide-react'
+import { applyFilters, zoomToFilteredSites } from '@/lib/map-filters'
 
 // Colour scale by occupancy_pct
 // coalesce maps null/missing → -1, which falls into the grey bucket below 0.
@@ -108,29 +109,6 @@ function BasemapPreview({ style }: { style: string | maplibregl.StyleSpecificati
   return <div ref={containerRef} aria-hidden="true" className="pointer-events-none h-20 w-full bg-gray-100" />
 }
 
-function applyFilters(map: maplibregl.Map, road: string, operator: string) {
-  if (!map.getLayer('parking-circles')) return
-  const conditions: maplibregl.ExpressionSpecification[] = []
-  if (road.trim()) {
-    conditions.push(['==', ['upcase', ['coalesce', ['get', 'road_identifier'], '']], road.trim().toUpperCase()])
-  }
-  if (operator.trim()) {
-    conditions.push(['!=', ['index-of', operator.trim().toLowerCase(), ['downcase', ['coalesce', ['get', 'operator_name'], '']]], -1])
-  }
-  if (!conditions.length) {
-    map.setFilter('parking-circles', null)
-    if (map.getLayer('parking-circles-dim'))
-      map.setLayoutProperty('parking-circles-dim', 'visibility', 'none')
-    return
-  }
-  const match: maplibregl.ExpressionSpecification = conditions.length === 1 ? conditions[0] : ['all', ...conditions]
-  if (map.getLayer('parking-circles-dim')) {
-    map.setLayoutProperty('parking-circles-dim', 'visibility', 'visible')
-    map.setFilter('parking-circles-dim', ['!', match])
-  }
-  map.setFilter('parking-circles', match)
-}
-
 function formatTs(iso: string | null): string {
   if (!iso) return '–'
   const d = new Date(iso)
@@ -206,12 +184,35 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
   const metricLabelRef  = useRef(metricLabel)
   const roadFilterRef   = useRef(roadFilter)
   const operatorFilterRef = useRef(operatorFilter)
+  const filterRevisionRef = useRef(0)
+  const pendingFilterZoomRef = useRef(true)
   const basemapMenuRef  = useRef<HTMLDetailsElement>(null)
   const [basemapMenuOpen, setBasemapMenuOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [basemapId, setBasemapId] = useState(
     BASEMAPS.find(basemap => basemap.id !== 'default' && basemap.style === MAP_STYLE)?.id ?? 'default'
   )
+
+  const fitPendingFilters = useCallback(async () => {
+    const map = mapRef.current
+    const source = map?.getSource('parking') as maplibregl.GeoJSONSource | undefined
+    if (!map || !source || !pendingFilterZoomRef.current || !map.isSourceLoaded('parking')) return
+    pendingFilterZoomRef.current = false
+    const revision = filterRevisionRef.current
+    try {
+      // Read the complete source: rendered/source tile queries can omit off-screen sites.
+      const data = await source.getData()
+      if (mapRef.current !== map || filterRevisionRef.current !== revision) return
+      if (map.getSource('parking') !== source) {
+        pendingFilterZoomRef.current = true
+        void fitPendingFilters()
+        return
+      }
+      zoomToFilteredSites(map, data, roadFilterRef.current, operatorFilterRef.current)
+    } catch (error) {
+      console.error('Could not zoom to filtered sites:', error)
+    }
+  }, [])
 
   useEffect(() => {
     const dismissMenu = (event: PointerEvent) => {
@@ -256,8 +257,11 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
   useEffect(() => {
     operatorFilterRef.current = operatorFilter
     roadFilterRef.current = roadFilter
+    filterRevisionRef.current++
+    pendingFilterZoomRef.current = Boolean(roadFilter.trim() || operatorFilter.trim())
     if (mapRef.current) applyFilters(mapRef.current, roadFilter, operatorFilter)
-  }, [operatorFilter, roadFilter])
+    void fitPendingFilters()
+  }, [operatorFilter, roadFilter, fitPendingFilters])
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
@@ -327,7 +331,10 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
       if (e.sourceId === 'parking') setLoading(true)
     })
     map.on('sourcedata', (e) => {
-      if (e.sourceId === 'parking' && map.isSourceLoaded('parking')) setLoading(false)
+      if (e.sourceId === 'parking' && map.isSourceLoaded('parking')) {
+        setLoading(false)
+        void fitPendingFilters()
+      }
     })
     map.on('error', () => setLoading(false))
 
@@ -364,7 +371,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
       map.remove()
       mapRef.current = null
     }
-  }, [onSiteSelect])
+  }, [onSiteSelect, fitPendingFilters])
 
   return (
     <div className="relative w-full h-full">

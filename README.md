@@ -26,6 +26,11 @@ lassen sich direkt öffnen und kombinieren, z.B.
 `operator` sucht ohne Beachtung der Groß-/Kleinschreibung nach einem Teil des
 Betreibernamens; `road` filtert nach der Autobahnnummer (z.B. `A2`).
 Beide Filter gelten in allen Zeitansichten; andere Standorte bleiben abgedimmt.
+Beim Setzen eines Filters zoomt die Karte auf den umschließenden Bereich aller
+Treffer, auch beim Öffnen eines Filterlinks. Bei genau einem Treffer wird
+Zoomstufe 8 verwendet. Ohne Treffer oder beim Zurücksetzen aller Filter bleibt
+der Kartenausschnitt unverändert. Automatische Datenaktualisierungen verschieben
+die Karte nicht.
 
 Beim Öffnen eines Filterlinks zählt die Anwendung pro Datum, Parameter und Wert
 einen Aufruf. Betreiberwerte werden für die Statistik kleingeschrieben,
