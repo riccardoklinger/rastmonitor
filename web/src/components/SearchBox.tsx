@@ -5,7 +5,8 @@ import { Search } from 'lucide-react'
 import type { SiteProperties } from './Map'
 
 export interface SearchResult extends Pick<SiteProperties,
-  'operator_name' | 'road_identifier' | 'road_destination' | 'free_of_charge' | 'location_type' | 'certified_secure'> {
+  'operator_name' | 'road_identifier' | 'road_destination' | 'free_of_charge' | 'location_type' | 'certified_secure' |
+  'address_id' | 'street' | 'house_number' | 'postcode' | 'city' | 'country' | 'state_code' | 'state_name'> {
   datex_id: string
   name: string
   official_spaces: number | null

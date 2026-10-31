@@ -82,6 +82,22 @@ The counters store daily totals by filter value, not unique visitors or referrer
 Only initial map opens with `operator` and/or `road` are counted, not changes in
 the filter tools. Counts require the browser's tracking request to succeed.
 
+### Site address details
+
+Apply the address migration before deploying the updated web and ingestion
+services. Then refresh static data to populate the new columns:
+
+```bash
+docker compose exec -T db sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < db/migrate_add_site_address.sql
+docker compose up -d --build --no-deps web ingestion
+docker compose exec ingestion python3 /app/fetch_static.py
+```
+
+The migration is safe to repeat and preserves existing data. Fresh databases
+include these columns in `db/init.sql`. Until the static import succeeds, the
+address fields remain empty. No state is inferred for unrecognized address ID
+prefixes; the importer logs a warning instead.
+
 ### Protect the GeoPackage download
 
 The burger menu links to `/downloads`, a public information/contact page with a

@@ -1,0 +1,9 @@
+ALTER TABLE parking_sites
+  ADD COLUMN IF NOT EXISTS address_id   TEXT,
+  ADD COLUMN IF NOT EXISTS street       TEXT,
+  ADD COLUMN IF NOT EXISTS house_number TEXT,
+  ADD COLUMN IF NOT EXISTS postcode     TEXT,
+  ADD COLUMN IF NOT EXISTS city         TEXT,
+  ADD COLUMN IF NOT EXISTS country      TEXT,
+  ADD COLUMN IF NOT EXISTS state_code   TEXT,
+  ADD COLUMN IF NOT EXISTS state_name   TEXT;

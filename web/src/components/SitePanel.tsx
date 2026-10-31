@@ -126,6 +126,10 @@ export default function SitePanel({ site, onClose }: Props) {
     value == null ? 'Keine Angabe' : value ? 'Ja' : 'Nein'
   const staticDetails = [
     ['Betreiber', site.operator_name],
+    ['Straße / Hausnummer', [site.street, site.house_number].filter(Boolean).join(' ')],
+    ['Postleitzahl', site.postcode],
+    ['Ort', site.city],
+    ['Bundesland', site.state_name],
     ['Straße / Autobahn', site.road_identifier],
     ['Fahrtrichtung / Ziel', site.road_destination],
     ['Kostenlos', formatBoolean(site.free_of_charge)],
@@ -178,9 +182,9 @@ export default function SitePanel({ site, onClose }: Props) {
                 {new Date(site.fetched_at).toLocaleString('de-DE')}
               </p>
             )}
-            <section className="border-t border-gray-100 pt-3">
-              <h3 className="text-xs font-medium text-gray-700 mb-2">Standortdetails</h3>
-              <dl className="space-y-2 text-xs">
+            <details className="border-t border-gray-100 pt-3">
+              <summary className="cursor-pointer text-xs font-medium text-gray-700">Standortdetails</summary>
+              <dl className="mt-2 space-y-2 text-xs">
                 {staticDetails.map(([label, value]) => (
                   <div key={label}>
                     <dt className="text-gray-500">{label}</dt>
@@ -188,7 +192,7 @@ export default function SitePanel({ site, onClose }: Props) {
                   </div>
                 ))}
               </dl>
-            </section>
+            </details>
           </div>
 
           {/* 72 h chart */}

@@ -8,7 +8,8 @@ const ts = require('typescript')
 function loadTypescript(path, imports = {}) {
   const source = readFileSync(resolve(__dirname, '../src', path), 'utf8')
   const { outputText } = ts.transpileModule(source, {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+    fileName: path,
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
   })
   const exports = {}
   runInNewContext(outputText, {
@@ -23,6 +24,59 @@ function loadTypescript(path, imports = {}) {
 
 const filters = loadTypescript('lib/filter-url.ts')
 const mapFilters = loadTypescript('lib/map-filters.ts')
+
+test('Standortdetails is collapsible and renders addresses safely with missing-field labels', () => {
+  const React = require('react')
+  const { renderToStaticMarkup } = require('react-dom/server')
+  const Panel = loadTypescript('components/SitePanel.tsx', {
+    react: React,
+    'react/jsx-runtime': require('react/jsx-runtime'),
+    recharts: {},
+  }).default
+  const render = site => renderToStaticMarkup(React.createElement(Panel, { site, onClose() {} }))
+  const html = render({
+    datex_id: 'test', name: 'Test',
+    street: 'An der BAB A 93', house_number: '2', postcode: '01067',
+    city: '<script>not executable</script>', country: 'de',
+    state_code: 'DE-BY', state_name: 'Bayern',
+    address_id: 'DE-BY-000424-parkingSiteAddress',
+  })
+  assert.match(html, /<details[^>]*><summary[^>]*>Standortdetails<\/summary>/)
+  assert.match(html, /An der BAB A 93 2/)
+  assert.match(html, /01067/)
+  assert.match(html, /<dd[^>]*>Bayern<\/dd>/)
+  assert.doesNotMatch(html, /DE-BY/)
+  assert.doesNotMatch(html, /Adress-ID|DE-BY-000424-parkingSiteAddress/)
+  assert.doesNotMatch(html, /<dt[^>]*>Land<\/dt>/)
+  assert.match(html, /&lt;script&gt;not executable&lt;\/script&gt;/)
+  assert.match(render({ datex_id: 'empty', name: 'Empty' }), /Keine Angabe/)
+})
+
+test('live, snapshot, daily and search responses include all address fields', async () => {
+  const address = {
+    address_id: 'DE-BY-000424-parkingSiteAddress',
+    street: 'An der BAB A 93', house_number: '2', postcode: '01067',
+    city: 'Windischeschenbach', country: 'de', state_code: 'DE-BY', state_name: 'Bayern',
+  }
+  for (const route of ['app/api/sites/route.ts', 'app/api/sites/snapshot/route.ts', 'app/api/sites/daily-max/route.ts', 'app/api/search/route.ts']) {
+    const handler = loadTypescript(route, {
+      'next/server': { NextResponse: Response },
+      '@/lib/db': { default: {
+        async query(sql) {
+          for (const field of Object.keys(address)) assert.ok(sql.includes(`ps.${field}`), `${route}: ${field} not selected`)
+          return { rows: [{ datex_id: 'test', name: 'Test', longitude: 9, latitude: 50, ...address }] }
+        },
+      } },
+    }).GET
+    const response = await handler({
+      nextUrl: new URL('https://example.test/?q=test&date=2026-10-31&at=2026-10-31T12:00:00Z'),
+    })
+    assert.equal(response.status, 200)
+    const data = await response.json()
+    const properties = Array.isArray(data) ? data[0] : data.features[0].properties
+    for (const [field, value] of Object.entries(address)) assert.equal(properties[field], value, `${route}: ${field}`)
+  }
+})
 
 function site(lng, lat, road = 'A2', operator = 'Die Autobahn GmbH') {
   return {

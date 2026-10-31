@@ -20,6 +20,7 @@ Cron:          0 3 * * *  python /app/fetch_static.py
 import os
 import sys
 import logging
+import re
 from lxml import etree
 from requests_pkcs12 import get
 from db import get_connection
@@ -34,6 +35,25 @@ NS = "http://datex2.eu/schema/2/2_0"
 ENDPOINT = os.environ["STATIC_ENDPOINT"]
 CERT_FILE = os.environ["CERT_FILE"]
 P12_PASSWORD = os.environ.get("P12_PASSWORD", "")
+
+STATE_NAMES = {
+    "BB": "Brandenburg",
+    "BE": "Berlin",
+    "BW": "Baden-W\u00fcrttemberg",
+    "BY": "Bayern",
+    "HB": "Bremen",
+    "HE": "Hessen",
+    "HH": "Hamburg",
+    "MV": "Mecklenburg-Vorpommern",
+    "NI": "Niedersachsen",
+    "NW": "Nordrhein-Westfalen",
+    "RP": "Rheinland-Pfalz",
+    "SH": "Schleswig-Holstein",
+    "SL": "Saarland",
+    "SN": "Sachsen",
+    "ST": "Sachsen-Anhalt",
+    "TH": "Th\u00fcringen",
+}
 
 
 def _text(el, tag):
@@ -93,9 +113,38 @@ def _bool(el, tag):
     return val.lower() == "true"
 
 
+def parse_address(parking_record_el):
+    address = parking_record_el.find(f"{{{NS}}}parkingSiteAddress")
+    attrs = dict.fromkeys((
+        "address_id", "street", "house_number", "postcode", "city", "country",
+        "state_code", "state_name",
+    ))
+    if address is None:
+        return attrs
+    attrs["address_id"] = address.get("id")
+    attrs["street"] = _text(address, "contactDetailsStreet")
+    numbers = [
+        el.text.strip()
+        for el in address.findall(f"{{{NS}}}contactDetailsHouseNumber")
+        if el.text and el.text.strip()
+    ]
+    attrs["house_number"] = "-".join(numbers) or None
+    attrs["postcode"] = _text(address, "contactDetailsPostcode")
+    attrs["city"] = _multilingual_value(address, "contactDetailsCity")
+    attrs["country"] = _text(address, "country")
+    # This feed encodes the state in the address ID, not in a dedicated XML field.
+    match = re.match(r"^DE-([A-Z]{2})-", attrs["address_id"] or "")
+    if match and match[1] in STATE_NAMES:
+        attrs["state_code"] = f"DE-{match[1]}"
+        attrs["state_name"] = STATE_NAMES[match[1]]
+    elif attrs["address_id"]:
+        log.warning("Cannot derive Bundesland from address ID %s", attrs["address_id"])
+    return attrs
+
+
 def parse_extended(parking_record_el):
     """Parse all extended static attributes from a parkingRecord element."""
-    attrs = {}
+    attrs = parse_address(parking_record_el)
 
     # Operator name
     operator_el = parking_record_el.find(f"{{{NS}}}operator")
@@ -222,7 +271,9 @@ def upsert(records):
             datex_id, version, name, official_spaces, total_spaces, location,
             operator_name, road_identifier, road_destination,
             free_of_charge, usage_scenario, location_type,
-            certified_secure, occupancy_detection_type
+            certified_secure, occupancy_detection_type,
+            address_id, street, house_number, postcode, city, country,
+            state_code, state_name
         )
         VALUES %s
         ON CONFLICT (datex_id) DO UPDATE SET
@@ -239,6 +290,14 @@ def upsert(records):
             location_type            = EXCLUDED.location_type,
             certified_secure         = EXCLUDED.certified_secure,
             occupancy_detection_type = EXCLUDED.occupancy_detection_type,
+            address_id               = EXCLUDED.address_id,
+            street                   = EXCLUDED.street,
+            house_number             = EXCLUDED.house_number,
+            postcode                 = EXCLUDED.postcode,
+            city                     = EXCLUDED.city,
+            country                  = EXCLUDED.country,
+            state_code               = EXCLUDED.state_code,
+            state_name               = EXCLUDED.state_name,
             updated_at               = now()
     """
     rows = [
@@ -257,6 +316,14 @@ def upsert(records):
             r.get("location_type"),
             r.get("certified_secure"),
             r.get("occupancy_detection_type"),
+            r.get("address_id"),
+            r.get("street"),
+            r.get("house_number"),
+            r.get("postcode"),
+            r.get("city"),
+            r.get("country"),
+            r.get("state_code"),
+            r.get("state_name"),
         )
         for r in records
     ]

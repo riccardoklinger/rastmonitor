@@ -22,6 +22,14 @@ const OCCUPANCY_COLOR: any = [
 export interface SiteProperties {
   datex_id: string
   name: string
+  address_id?: string | null
+  street?: string | null
+  house_number?: string | null
+  postcode?: string | null
+  city?: string | null
+  country?: string | null
+  state_code?: string | null
+  state_name?: string | null
   operator_name?: string | null
   road_identifier?: string | null
   road_destination?: string | null

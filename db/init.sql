@@ -9,6 +9,14 @@ CREATE TABLE IF NOT EXISTS parking_sites (
     official_spaces INTEGER,
     total_spaces    INTEGER,
     address         TEXT,
+    address_id      TEXT,
+    street          TEXT,
+    house_number    TEXT,
+    postcode        TEXT,
+    city            TEXT,
+    country         TEXT,
+    state_code      TEXT,
+    state_name      TEXT,
     location        geometry(Point, 4326) NOT NULL,
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );

@@ -46,6 +46,14 @@ Vor dem Einsatz auf einer bestehenden Datenbank die Migration aus der
 
 ## Datenbasis
 
+Die aufklappbaren **Standortdetails** in der Seitenleiste zeigen auch
+Straße, Hausnummer, Postleitzahl, Ort und Bundesland aus dem statischen Feed.
+Das Bundesland wird aus bekannten `DE-XX-`-Präfixen der Adress-ID abgeleitet;
+unbekannte Präfixe (z.B. `DE-PR`) bleiben ohne Bundesland und werden beim Import
+protokolliert. Fehlende Angaben erscheinen als „Keine Angabe“.
+Bestehende Installationen benötigen die
+[Adressmigration und einen erneuten statischen Import](./DEPLOYMENT.md#site-address-details).
+
 | Typ | Beschreibung | Aktualisierung |
 |-----|-------------|----------------|
 | Statisch | Stammdaten der Rastplätze (Name, Position, Kapazität) | 1× täglich, 03:00 Uhr |
