@@ -5,7 +5,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { Building2, List, Menu, Route, Search } from 'lucide-react'
 import RoadFilter from '@/components/RoadFilter'
 import OperatorFilter from '@/components/OperatorFilter'
-import { readUrlFilters, updateFilterUrl } from '@/lib/filter-url'
+import { activeMapFilter, readUrlFilters, updateFilterUrl } from '@/lib/filter-url'
 import type { SiteProperties, MapHandle } from '@/components/Map'
 import type { DailyMetric } from '@/components/DayPicker'
 import type { SearchResult } from '@/components/SearchBox'
@@ -38,8 +38,12 @@ export default function Home() {
 
   useEffect(() => {
     const filters = readUrlFilters(new URLSearchParams(window.location.search))
-    setOperatorFilter(filters.operator)
-    setRoadFilter(filters.road)
+    const active = activeMapFilter(filters)
+    setOperatorFilter(active.operator)
+    setRoadFilter(active.road)
+    if (filters.operator && filters.road) {
+      window.history.replaceState(window.history.state, '', updateFilterUrl(new URL(window.location.href), 'operator', active.operator))
+    }
     if (linkCountedRef.current) return
     linkCountedRef.current = true
     if (!filters.operator && !filters.road) return
@@ -77,6 +81,7 @@ export default function Home() {
 
   const handleRoadFilter = useCallback((val: string) => {
     setRoadFilter(val)
+    if (val) setOperatorFilter('')
     window.history.replaceState(window.history.state, '', updateFilterUrl(new URL(window.location.href), 'road', val))
     if (roadToolRef.current) {
       roadToolRef.current.open = false
@@ -86,6 +91,7 @@ export default function Home() {
 
   const handleOperatorFilter = useCallback((val: string) => {
     setOperatorFilter(val)
+    if (val) setRoadFilter('')
     window.history.replaceState(window.history.state, '', updateFilterUrl(new URL(window.location.href), 'operator', val))
     if (operatorToolRef.current) {
       operatorToolRef.current.open = false

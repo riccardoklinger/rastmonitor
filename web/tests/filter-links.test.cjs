@@ -157,10 +157,10 @@ test('reads and normalizes combined, encoded and empty URL filters', () => {
   assert.equal(empty.road, '')
 })
 
-test('changing and clearing filters preserves the other parameter, query and fragment', () => {
+test('switching filters removes the previous parameter and preserves unrelated query and fragment', () => {
   const url = new URL('https://example.test/?operator=Autobahn&other=keep#map')
   filters.updateFilterUrl(url, 'road', 'A2')
-  assert.equal(url.searchParams.get('operator'), 'Autobahn')
+  assert.equal(url.searchParams.has('operator'), false)
   assert.equal(url.searchParams.get('road'), 'A2')
   filters.updateFilterUrl(url, 'operator', '')
   assert.equal(url.searchParams.has('operator'), false)
@@ -169,8 +169,22 @@ test('changing and clearing filters preserves the other parameter, query and fra
   assert.equal(url.hash, '#map')
   filters.updateFilterUrl(url, 'operator', 'Müller & Söhne')
   assert.equal(new URL(url.href).searchParams.get('operator'), 'Müller & Söhne')
+  assert.equal(url.searchParams.has('road'), false)
   filters.updateFilterUrl(url, 'road', '')
   assert.equal(url.searchParams.has('road'), false)
+})
+
+test('legacy combined links activate only the operator, while road-only and empty links still work', () => {
+  for (const [query, operator, road] of [
+    ['operator=Autobahn&road=A2', 'Autobahn', ''],
+    ['road=A2', '', 'A2'],
+    ['operator=Autobahn', 'Autobahn', ''],
+    ['', '', ''],
+  ]) {
+    const active = filters.activeMapFilter(filters.readUrlFilters(new URLSearchParams(query)))
+    assert.equal(active.operator, operator)
+    assert.equal(active.road, road)
+  }
 })
 
 function counter(query) {
