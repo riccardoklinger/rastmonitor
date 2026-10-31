@@ -41,9 +41,24 @@ export default function Impressum() {
         <section className="space-y-2 text-gray-700 text-sm">
           <h2 className="font-semibold text-gray-900">Datenschutz</h2>
           <p>
-            Diese Website speichert keine personenbezogenen Daten. Es werden keine Cookies gesetzt
-            und keine Tracking-Dienste eingesetzt. Die Kartengrundlage wird von einem externen
-            Anbieter (OpenFreeMap) bezogen; dabei gelten dessen Datenschutzbestimmungen.
+            Zugriffe werden gezählt, um den Betrieb und die Last der Website zu überwachen.
+            Gespeichert werden tägliche Summen der Seitenaufrufe sowie der Aufrufe von
+            Filterlinks mit den Parametern Betreiber und Autobahn. Bei Filterlinks werden
+            zusätzlich der Parameter und sein Wert gespeichert. Diese Zählung dient dem
+            Betrieb, nicht der Auswertung von Personen. Für diese Statistik werden keine
+            IP-Adressen oder Benutzerkennungen gespeichert und keine Cookies gesetzt.
+            Es werden keine externen Tracking-Dienste eingesetzt.
+          </p>
+          <p>
+            Für die Anmeldung zum geschützten Download wird ein technisch notwendiges
+            Sitzungscookie gesetzt. Es ist 30 Minuten gültig und dient ausschließlich der
+            Zugriffskontrolle, nicht der Nutzungsanalyse.
+          </p>
+          <p>
+            Je nach gewählter Kartengrundlage werden Kartenstile und Kartenkacheln direkt
+            von externen Anbietern (BKG bzw. Esri) geladen. Dabei wird unter anderem die
+            IP-Adresse an den jeweiligen Anbieter übermittelt. Für diese Anfragen gelten
+            dessen Datenschutzbestimmungen.
           </p>
         </section>
       </div>

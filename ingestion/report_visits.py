@@ -1,7 +1,7 @@
 """
 report_visits.py — daily page view summary.
 
-Queries the page_views table and prints a report for the last 30 days.
+Queries page_views and filter_link_views for the last 30 days.
 Run manually or via cron to get a quick overview of site traffic.
 
 Usage:
@@ -34,8 +34,18 @@ def report(days: int = 30):
                 (days,),
             )
             rows = cur.fetchall()
+            cur.execute(
+                """
+                SELECT day, parameter_name, parameter_value, count
+                FROM filter_link_views
+                WHERE day >= CURRENT_DATE - %s::int
+                ORDER BY day DESC, parameter_name, count DESC, parameter_value
+                """,
+                (days,),
+            )
+            filter_rows = cur.fetchall()
 
-        if not rows:
+        if not rows and not filter_rows:
             print("Keine Daten vorhanden.")
             return
 
@@ -50,8 +60,17 @@ def report(days: int = 30):
             print(f"{str(day):<14} {count:>8}")
         print(f"{'-'*24}")
         print(f"{'Gesamt':<14} {total:>8}")
-        print(f"{'Schnitt/Tag':<14} {total/len(rows):>7.1f}")
+        if rows:
+            print(f"{'Schnitt/Tag':<14} {total/len(rows):>7.1f}")
         print(f"{'='*40}\n")
+
+        print("  Filter-Link-Aufrufe (keine eindeutigen Besucher)")
+        print(f"{'Datum':<14} {'Parameter':<10} {'Aufrufe':>8}  Wert")
+        for day, parameter, value, count in filter_rows:
+            print(f"{str(day):<14} {parameter:<10} {count:>8}  {value}")
+        if not filter_rows:
+            print("Keine Filter-Link-Aufrufe vorhanden.")
+        print("Links mit beiden Parametern zählen einmal je Parameter.\n")
 
     finally:
         conn.close()

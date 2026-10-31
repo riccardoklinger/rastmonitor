@@ -39,13 +39,14 @@ export interface SiteProperties {
 export interface MapHandle {
   flyTo: (lng: number, lat: number, zoom?: number) => void
   showPopup: (lng: number, lat: number, site: SiteProperties, metricLabel?: string) => void
-  setRoadFilter: (road: string) => void
 }
 
 interface MapProps {
   onSiteSelect: (site: SiteProperties) => void
   dataUrl?: string
   metricLabel?: string
+  operatorFilter?: string
+  roadFilter?: string
 }
 
 // Self-hosted by default (/api/map-style → Martin tile server via Next.js proxy).
@@ -107,20 +108,27 @@ function BasemapPreview({ style }: { style: string | maplibregl.StyleSpecificati
   return <div ref={containerRef} aria-hidden="true" className="pointer-events-none h-20 w-full bg-gray-100" />
 }
 
-function applyRoadFilter(map: maplibregl.Map, road: string) {
+function applyFilters(map: maplibregl.Map, road: string, operator: string) {
   if (!map.getLayer('parking-circles')) return
-  if (!road.trim()) {
+  const conditions: maplibregl.ExpressionSpecification[] = []
+  if (road.trim()) {
+    conditions.push(['==', ['upcase', ['coalesce', ['get', 'road_identifier'], '']], road.trim().toUpperCase()])
+  }
+  if (operator.trim()) {
+    conditions.push(['!=', ['index-of', operator.trim().toLowerCase(), ['downcase', ['coalesce', ['get', 'operator_name'], '']]], -1])
+  }
+  if (!conditions.length) {
     map.setFilter('parking-circles', null)
     if (map.getLayer('parking-circles-dim'))
       map.setLayoutProperty('parking-circles-dim', 'visibility', 'none')
-  } else {
-    const val = road.trim().toUpperCase()
-    if (map.getLayer('parking-circles-dim')) {
-      map.setLayoutProperty('parking-circles-dim', 'visibility', 'visible')
-      map.setFilter('parking-circles-dim', ['!=', ['upcase', ['coalesce', ['get', 'road_identifier'], '']], val])
-    }
-    map.setFilter('parking-circles', ['==', ['upcase', ['coalesce', ['get', 'road_identifier'], '']], val])
+    return
   }
+  const match: maplibregl.ExpressionSpecification = conditions.length === 1 ? conditions[0] : ['all', ...conditions]
+  if (map.getLayer('parking-circles-dim')) {
+    map.setLayoutProperty('parking-circles-dim', 'visibility', 'visible')
+    map.setFilter('parking-circles-dim', ['!', match])
+  }
+  map.setFilter('parking-circles', match)
 }
 
 function formatTs(iso: string | null): string {
@@ -189,14 +197,15 @@ function showSitePopup(map: maplibregl.Map, lngLat: maplibregl.LngLatLike, site:
 }
 
 const Map = forwardRef<MapHandle, MapProps>(function Map(
-  { onSiteSelect, dataUrl = '/api/sites', metricLabel = 'Auslastung' },
+  { onSiteSelect, dataUrl = '/api/sites', metricLabel = 'Auslastung', operatorFilter = '', roadFilter = '' },
   ref
 ) {
   const containerRef    = useRef<HTMLDivElement>(null)
   const mapRef          = useRef<maplibregl.Map | null>(null)
   const dataUrlRef      = useRef(dataUrl)
   const metricLabelRef  = useRef(metricLabel)
-  const roadFilterRef   = useRef('')
+  const roadFilterRef   = useRef(roadFilter)
+  const operatorFilterRef = useRef(operatorFilter)
   const basemapMenuRef  = useRef<HTMLDetailsElement>(null)
   const [basemapMenuOpen, setBasemapMenuOpen] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -230,12 +239,6 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
     showPopup: (lng, lat, site, label = metricLabelRef.current) => {
       if (mapRef.current) showSitePopup(mapRef.current, [lng, lat], site, label)
     },
-    setRoadFilter: (road: string) => {
-      roadFilterRef.current = road
-        const map = mapRef.current
-        if (!map) return
-        applyRoadFilter(map, road)
-      },
   }))
 
   // Keep refs in sync
@@ -247,10 +250,14 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
     const source = mapRef.current?.getSource('parking') as maplibregl.GeoJSONSource | undefined
     if (source) {
       source.setData(dataUrl)
-      // Re-apply road filter after data swap (new GeoJSON may have road_identifier)
-      if (roadFilterRef.current) applyRoadFilter(mapRef.current!, roadFilterRef.current)
     }
   }, [dataUrl])
+
+  useEffect(() => {
+    operatorFilterRef.current = operatorFilter
+    roadFilterRef.current = roadFilter
+    if (mapRef.current) applyFilters(mapRef.current, roadFilter, operatorFilter)
+  }, [operatorFilter, roadFilter])
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
@@ -313,7 +320,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
         },
       }, 'parking-circles') // insert below main layer so main layer renders on top
 
-      applyRoadFilter(map, roadFilterRef.current)
+      applyFilters(map, roadFilterRef.current, operatorFilterRef.current)
     })
 
     map.on('sourcedataloading', (e) => {

@@ -2,8 +2,10 @@
 
 import dynamic from 'next/dynamic'
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { List, Menu, Route, Search } from 'lucide-react'
+import { Building2, List, Menu, Route, Search } from 'lucide-react'
 import RoadFilter from '@/components/RoadFilter'
+import OperatorFilter from '@/components/OperatorFilter'
+import { readUrlFilters, updateFilterUrl } from '@/lib/filter-url'
 import type { SiteProperties, MapHandle } from '@/components/Map'
 import type { DailyMetric } from '@/components/DayPicker'
 import type { SearchResult } from '@/components/SearchBox'
@@ -29,6 +31,27 @@ export default function Home() {
 
   const [roadFilter, setRoadFilter] = useState('')
   const [roadToolOpen, setRoadToolOpen] = useState(false)
+  const operatorToolRef = useRef<HTMLDetailsElement>(null)
+  const [operatorFilter, setOperatorFilter] = useState('')
+  const [operatorToolOpen, setOperatorToolOpen] = useState(false)
+  const linkCountedRef = useRef(false)
+
+  useEffect(() => {
+    const filters = readUrlFilters(new URLSearchParams(window.location.search))
+    setOperatorFilter(filters.operator)
+    setRoadFilter(filters.road)
+    if (linkCountedRef.current) return
+    linkCountedRef.current = true
+    if (!filters.operator && !filters.road) return
+    fetch('/api/filter-visits', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(filters),
+      keepalive: true,
+    }).then(response => {
+      if (!response.ok) throw new Error(`Filter link count failed (${response.status})`)
+    }).catch(error => console.error('Could not record filter link open:', error))
+  }, [])
 
   useEffect(() => {
     const dismissTools = (event: PointerEvent) => {
@@ -54,10 +77,19 @@ export default function Home() {
 
   const handleRoadFilter = useCallback((val: string) => {
     setRoadFilter(val)
-    mapRef.current?.setRoadFilter(val)
+    window.history.replaceState(window.history.state, '', updateFilterUrl(new URL(window.location.href), 'road', val))
     if (roadToolRef.current) {
       roadToolRef.current.open = false
       roadToolRef.current.querySelector('summary')?.focus()
+    }
+  }, [])
+
+  const handleOperatorFilter = useCallback((val: string) => {
+    setOperatorFilter(val)
+    window.history.replaceState(window.history.state, '', updateFilterUrl(new URL(window.location.href), 'operator', val))
+    if (operatorToolRef.current) {
+      operatorToolRef.current.open = false
+      operatorToolRef.current.querySelector('summary')?.focus()
     }
   }, [])
 
@@ -107,7 +139,7 @@ export default function Home() {
     <main className="relative w-screen h-screen overflow-hidden">
       {/* Map fills everything except the bottom control bar */}
       <div className="absolute inset-0 bottom-14">
-        <Map ref={mapRef} onSiteSelect={setSelectedSite} dataUrl={dataUrl} metricLabel={metricLabel} />
+        <Map ref={mapRef} onSiteSelect={setSelectedSite} dataUrl={dataUrl} metricLabel={metricLabel} operatorFilter={operatorFilter} roadFilter={roadFilter} />
       </div>
 
       {selectedSite && (
@@ -190,6 +222,25 @@ export default function Home() {
           </summary>
           <div className="absolute top-0 right-[39px] w-72 max-w-[calc(100vw-59px)]">
             {roadToolOpen && <RoadFilter value={roadFilter} onSelect={handleRoadFilter} />}
+          </div>
+        </details>
+
+        <details
+          ref={operatorToolRef}
+          name="map-tools"
+          className="relative"
+          onToggle={event => setOperatorToolOpen(event.currentTarget.open)}
+        >
+          <summary
+            aria-label="Betreiber filtern"
+            title={operatorFilter ? `Betreiber filtern: ${operatorFilter}` : 'Betreiber filtern'}
+            data-active={Boolean(operatorFilter)}
+            className="map-toolbar-button"
+          >
+            <Building2 size={18} aria-hidden="true" />
+          </summary>
+          <div className="absolute top-0 right-[39px] w-72 max-w-[calc(100vw-59px)]">
+            {operatorToolOpen && <OperatorFilter value={operatorFilter} onSelect={handleOperatorFilter} />}
           </div>
         </details>
 

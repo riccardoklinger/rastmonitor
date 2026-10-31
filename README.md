@@ -18,6 +18,27 @@ rastmonitor visualisiert die aktuelle und historische Belegung von LKW-Rastplät
 | **72h** | Zeitreise der letzten 3 Tage (15-Minuten-Schritte) |
 | **90 Tage** | Tageshistorie mit Auswahl von Max, Mittel, Median oder Min |
 
+### Teilbare Kartenfilter
+
+Die Werkzeuge **Betreiber** und **Autobahn** aktualisieren die URL. Filterlinks
+lassen sich direkt öffnen und kombinieren, z.B.
+`https://rast-monitor.de/?operator=Autobahn&road=A2`.
+`operator` sucht ohne Beachtung der Groß-/Kleinschreibung nach einem Teil des
+Betreibernamens; `road` filtert nach der Autobahnnummer (z.B. `A2`).
+Beide Filter gelten in allen Zeitansichten; andere Standorte bleiben abgedimmt.
+
+Beim Öffnen eines Filterlinks zählt die Anwendung pro Datum, Parameter und Wert
+einen Aufruf. Betreiberwerte werden für die Statistik kleingeschrieben,
+Autobahnwerte großgeschrieben und ohne Leerzeichen gespeichert.
+Eine Änderung im Werkzeug zählt nicht als Link-Aufruf. Ein Link mit beiden
+Parametern erhöht beide Zähler; die Summen sind daher keine Besucherzahlen.
+Reloads zählen erneut; blockierte oder fehlgeschlagene Zählanfragen fehlen.
+Es werden keine Cookies, IP-Adressen oder Benutzerkennungen für diese Statistik
+gespeichert, nur die angegebenen Filterwerte (maximal 200 Zeichen).
+Bericht: `docker compose exec ingestion python3 /app/report_visits.py --days 7`.
+Vor dem Einsatz auf einer bestehenden Datenbank die Migration aus der
+[Deployment-Anleitung](./DEPLOYMENT.md#filter-link-statistics) ausführen.
+
 ## Datenbasis
 
 | Typ | Beschreibung | Aktualisierung |

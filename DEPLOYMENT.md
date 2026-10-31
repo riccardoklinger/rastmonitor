@@ -61,6 +61,24 @@ CERT_P12=/home/user/certs/certificate.p12
 
 ---
 
+### Filter-link statistics
+
+For an existing database, apply the migration before deploying the new web and
+ingestion images:
+
+```bash
+docker compose exec -T db sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < db/migrate_add_filter_link_views.sql
+docker compose up -d --build --no-deps web ingestion
+docker compose exec ingestion python3 /app/report_visits.py --days 7
+```
+
+Fresh databases create `filter_link_views` through `db/init.sql`. The report also
+requires the existing `page_views` table (on an older installation, apply
+`db/migrate_add_page_views.sql` in the same way).
+The counters store daily totals by filter value, not unique visitors or referrers.
+Only initial map opens with `operator` and/or `road` are counted, not changes in
+the filter tools. Counts require the browser's tracking request to succeed.
+
 ### Protect the GeoPackage download
 
 The burger menu links to `/downloads`, a public information/contact page with a

@@ -1,0 +1,132 @@
+const { test } = require('node:test')
+const assert = require('node:assert/strict')
+const { readFileSync } = require('node:fs')
+const { resolve } = require('node:path')
+const { runInNewContext } = require('node:vm')
+const ts = require('typescript')
+
+function loadTypescript(path, imports = {}) {
+  const source = readFileSync(resolve(__dirname, '../src', path), 'utf8')
+  const { outputText } = ts.transpileModule(source, {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  })
+  const exports = {}
+  runInNewContext(outputText, {
+    exports, URLSearchParams, Response, console,
+    require(name) {
+      if (!(name in imports)) throw new Error(`Unexpected import: ${name}`)
+      return imports[name]
+    },
+  })
+  return exports
+}
+
+const filters = loadTypescript('lib/filter-url.ts')
+
+test('reads and normalizes combined, encoded and empty URL filters', () => {
+  const result = filters.readUrlFilters(new URLSearchParams('operator=Die+Autobahn+GmbH&road=+a+2+'))
+  assert.equal(result.operator, 'Die Autobahn GmbH')
+  assert.equal(result.road, 'A2')
+  const empty = filters.readUrlFilters(new URLSearchParams('operator=%20&road='))
+  assert.equal(empty.operator, '')
+  assert.equal(empty.road, '')
+})
+
+test('changing and clearing filters preserves the other parameter, query and fragment', () => {
+  const url = new URL('https://example.test/?operator=Autobahn&other=keep#map')
+  filters.updateFilterUrl(url, 'road', 'A2')
+  assert.equal(url.searchParams.get('operator'), 'Autobahn')
+  assert.equal(url.searchParams.get('road'), 'A2')
+  filters.updateFilterUrl(url, 'operator', '')
+  assert.equal(url.searchParams.has('operator'), false)
+  assert.equal(url.searchParams.get('road'), 'A2')
+  assert.equal(url.searchParams.get('other'), 'keep')
+  assert.equal(url.hash, '#map')
+  filters.updateFilterUrl(url, 'operator', 'Müller & Söhne')
+  assert.equal(new URL(url.href).searchParams.get('operator'), 'Müller & Söhne')
+  filters.updateFilterUrl(url, 'road', '')
+  assert.equal(url.searchParams.has('road'), false)
+})
+
+function counter(query) {
+  return loadTypescript('app/api/filter-visits/route.ts', {
+    'next/server': { NextResponse: Response },
+    '@/lib/db': { default: { query } },
+    '@/lib/filter-url': filters,
+  }).POST
+}
+
+const request = body => new Request('https://example.test/api/filter-visits', {
+  method: 'POST',
+  body: JSON.stringify(body),
+})
+
+test('counts each supplied parameter once with a single atomic upsert', async () => {
+  const calls = []
+  const post = counter(async (...args) => calls.push(args))
+  assert.equal((await post(request({ operator: ' Autobahn ', road: 'a 2' }))).status, 204)
+  assert.equal(calls.length, 1)
+  assert.match(calls[0][0], /ON CONFLICT/)
+  assert.equal(JSON.stringify(calls[0][1]), JSON.stringify([['operator', 'road'], ['autobahn', 'A2']]))
+})
+
+test('operator-only and road-only links each produce one counter entry', async () => {
+  const calls = []
+  const post = counter(async (...args) => calls.push(args))
+  await post(request({ operator: 'Autobahn' }))
+  await post(request({ road: 'A2' }))
+  assert.equal(JSON.stringify(calls.map(call => call[1])), JSON.stringify([
+    [['operator'], ['autobahn']], [['road'], ['A2']],
+  ]))
+})
+
+test('rejects invalid and empty payloads without writing to the database', async () => {
+  let queries = 0
+  const post = counter(async () => { queries++ })
+  for (const body of [null, [], {}, { operator: 1 }, { road: null }, { road: ' ' }, { operator: 'x'.repeat(201) }, { operator: '\0' }]) {
+    assert.equal((await post(request(body))).status, 400)
+  }
+  assert.equal((await post(new Request('https://example.test', { method: 'POST', body: '{' }))).status, 400)
+  assert.equal(queries, 0)
+})
+
+test('database failures are logged and return an error rather than a successful count', async context => {
+  const log = context.mock.method(console, 'error', () => {})
+  const post = counter(async () => { throw new Error('Database unavailable (test)') })
+  assert.equal((await post(request({ road: 'A2' }))).status, 500)
+  assert.equal(log.mock.callCount(), 1)
+})
+
+test('migration and repeated upserts persist exact daily totals', {
+  skip: process.env.FILTER_VISITS_DB_TEST !== '1',
+}, async () => {
+  const { Client } = require('pg')
+  const client = new Client({ connectionString: process.env.DATABASE_URL })
+  await client.connect()
+  try {
+    await client.query('BEGIN')
+    await client.query('CREATE SCHEMA filter_visits_verification')
+    await client.query('SET LOCAL search_path TO filter_visits_verification')
+    const migration = readFileSync(resolve(__dirname, '../../db/migrate_add_filter_link_views.sql'), 'utf8')
+    await client.query(migration)
+    await client.query(migration)
+    const post = counter((...args) => client.query(...args))
+    for (const body of [
+      { operator: 'Autobahn', road: 'a 2' },
+      { operator: ' autobahn ' },
+      { road: 'A2' },
+    ]) {
+      assert.equal((await post(request(body))).status, 204)
+    }
+    const { rows } = await client.query(
+      'SELECT parameter_name, parameter_value, count::int, day = CURRENT_DATE AS today FROM filter_link_views ORDER BY parameter_name'
+    )
+    assert.deepEqual(rows, [
+      { parameter_name: 'operator', parameter_value: 'autobahn', count: 2, today: true },
+      { parameter_name: 'road', parameter_value: 'A2', count: 2, today: true },
+    ])
+  } finally {
+    await client.query('ROLLBACK')
+    await client.end()
+  }
+})
