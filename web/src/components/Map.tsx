@@ -96,6 +96,8 @@ const BASEMAPS: { id: string; label: string; caption: string; style: string | ma
   },
 ]
 
+const DEFAULT_BASEMAP = BASEMAPS.find(basemap => basemap.id === 'light-grey') ?? BASEMAPS[0]
+
 function BasemapPreview({ style }: { style: string | maplibregl.StyleSpecification }) {
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -198,9 +200,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
   const basemapMenuRef  = useRef<HTMLDetailsElement>(null)
   const [basemapMenuOpen, setBasemapMenuOpen] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [basemapId, setBasemapId] = useState(
-    BASEMAPS.find(basemap => basemap.id !== 'default' && basemap.style === MAP_STYLE)?.id ?? 'default'
-  )
+  const [basemapId, setBasemapId] = useState(DEFAULT_BASEMAP.id)
 
   const fitPendingFilters = useCallback(async () => {
     const map = mapRef.current
@@ -284,7 +284,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: MAP_STYLE,
+      style: DEFAULT_BASEMAP.style,
       center: [10.4515, 51.1657], // Germany centre
       zoom: 6,
       attributionControl: false,
