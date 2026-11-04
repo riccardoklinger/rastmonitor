@@ -150,7 +150,7 @@ function buildPopupHtml(props: SiteProperties, metricLabel: string): string {
       ? Math.max(0, totalSpaces - officialSpaces)
       : null
 
-  // Show vacant spaces only when supplied by the feed.
+  // Prefer vacant spaces from the feed; estimate only when they are missing.
   const spacesStr = `${
     officialSpaces != null ? `${officialSpaces} StVO-konform · ` : ''
   }${
@@ -158,7 +158,9 @@ function buildPopupHtml(props: SiteProperties, metricLabel: string): string {
   }${totalSpaces ?? '–'} gesamt${
     props.vacant_spaces != null
       ? ` · ${props.vacant_spaces} frei`
-      : ''
+      : (pct != null && totalSpaces != null)
+        ? ` · ~${Math.max(0, Math.round(totalSpaces * (1 - pct / 100)))} frei`
+        : ''
   }`
 
   return `
