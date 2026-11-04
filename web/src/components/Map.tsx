@@ -150,7 +150,7 @@ function buildPopupHtml(props: SiteProperties, metricLabel: string): string {
       ? Math.max(0, totalSpaces - officialSpaces)
       : null
 
-  // vacant_spaces from feed, or estimate from occupancy_pct × total_spaces
+  // Show vacant spaces only when supplied by the feed.
   const spacesStr = `${
     officialSpaces != null ? `${officialSpaces} StVO-konform · ` : ''
   }${
@@ -158,9 +158,7 @@ function buildPopupHtml(props: SiteProperties, metricLabel: string): string {
   }${totalSpaces ?? '–'} gesamt${
     props.vacant_spaces != null
       ? ` · ${props.vacant_spaces} frei`
-      : (pct != null && totalSpaces)
-        ? ` · ~${Math.round(totalSpaces * (1 - pct / 100))} frei`
-        : ''
+      : ''
   }`
 
   return `
