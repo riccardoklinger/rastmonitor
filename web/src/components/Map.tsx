@@ -425,7 +425,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
           source: 'parking-star',
           filter: ['==', OCCUPANCY_COLOR, color],
           paint: {
-            'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, '#ffffff', 1, color],
+            'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, 'rgba(255, 255, 255, 0)', 1, color],
             'line-width': ['get', 'spike_width'],
             'line-opacity': 1,
           },
