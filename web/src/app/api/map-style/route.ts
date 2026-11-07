@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { layers, namedTheme } from 'protomaps-themes-base'
+import { layers, namedFlavor } from '@protomaps/basemaps'
 
 /**
  * GET /api/map-style
@@ -31,7 +31,7 @@ export async function GET() {
         attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
       },
     },
-    layers: layers('protomaps', namedTheme('light')),
+    layers: layers('protomaps', namedFlavor('light')),
   }
 
   return NextResponse.json(style, {

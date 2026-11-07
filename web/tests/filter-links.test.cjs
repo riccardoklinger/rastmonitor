@@ -29,6 +29,22 @@ const parkingStar = loadTypescript('lib/parking-star.ts', {
   '@turf/distance': require('@turf/distance'),
 })
 
+test('self-hosted map style uses supported basemaps with local tile and asset URLs', async () => {
+  const { validateStyleMin } = require('@maplibre/maplibre-gl-style-spec')
+  const route = loadTypescript('app/api/map-style/route.ts', {
+    '@protomaps/basemaps': require('@protomaps/basemaps'),
+    'next/server': { NextResponse: { json: (body, options) => ({ body, options }) } },
+  })
+  const { body, options } = await route.GET()
+  assert.equal(body.version, 8)
+  assert.ok(body.layers.length > 0)
+  assert.equal(body.glyphs, '/fonts/{fontstack}/{range}.pbf')
+  assert.equal(body.sprite, '/sprites/v4/light')
+  assert.deepEqual(Array.from(body.sources.protomaps.tiles), ['/tiles/germany/{z}/{x}/{y}'])
+  assert.equal(options.headers['Cache-Control'], 'public, max-age=3600')
+  assert.deepEqual(validateStyleMin(body).map(error => error.message), [])
+})
+
 test('parking star uses a 100 km great-circle cutoff, including off-screen sites in all directions', () => {
   const data = { type: 'FeatureCollection', features: [
     site(10, 50.899), site(10, 50.9), site(11, 50), site(9, 50), site(10, 49.5), site(10, 52),

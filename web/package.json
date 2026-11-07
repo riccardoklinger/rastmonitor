@@ -9,15 +9,16 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@protomaps/basemaps": "^5.7.2",
     "@turf/distance": "^7.4.0",
     "lucide-react": "^1.55.0",
     "maplibre-gl": "^4.7.1",
     "next": "^16.2.9",
     "pg": "^8.13.3",
-    "protomaps-themes-base": "^4.0.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "recharts": "^2.13.3"
+    "react-is": "^19.0.0",
+    "recharts": "^3.10.1"
   },
   "devDependencies": {
     "@types/node": "^20",
