@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react'
 import maplibregl from 'maplibre-gl'
-import { Layers } from 'lucide-react'
+import { Layers, Radar } from 'lucide-react'
 import { applyFilters, zoomToFilteredSites } from '@/lib/map-filters'
+import { buildParkingStar, STAR_RADIUS_KM } from '@/lib/parking-star'
 
 // Colour scale by occupancy_pct
 // coalesce maps null/missing → -1, which falls into the grey bucket below 0.
@@ -201,6 +202,73 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
   const [basemapMenuOpen, setBasemapMenuOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [basemapId, setBasemapId] = useState(DEFAULT_BASEMAP.id)
+  const [starActive, setStarActive] = useState(false)
+  const [starRadius, setStarRadius] = useState(STAR_RADIUS_KM)
+  const [starOrigin, setStarOrigin] = useState<[number, number] | null>(null)
+  const [liveSites, setLiveSites] = useState<GeoJSON.GeoJSON | null>(null)
+  const [starLoading, setStarLoading] = useState(false)
+  const [starError, setStarError] = useState('')
+  const [starCount, setStarCount] = useState(0)
+  const starActiveRef = useRef(false)
+  const starOriginRef = useRef<[number, number] | null>(null)
+  const framedOriginRef = useRef<[number, number] | null>(null)
+  const framedRadiusRef = useRef(STAR_RADIUS_KM)
+  const starDataRef = useRef<GeoJSON.FeatureCollection<GeoJSON.LineString>>({ type: 'FeatureCollection', features: [] })
+
+  useEffect(() => {
+    if (!starActive) return
+    const controller = new AbortController()
+    const refresh = async () => {
+      setStarLoading(true)
+      try {
+        const response = await fetch('/api/sites', { signal: controller.signal, cache: 'no-store' })
+        if (!response.ok) throw new Error('Live-Daten nicht verfügbar')
+        const data = await response.json()
+        if (data.type !== 'FeatureCollection' || !Array.isArray(data.features)) throw new Error('Ungültige Live-Daten')
+        if (controller.signal.aborted) return
+        setLiveSites(data)
+        setStarError('')
+      } catch (error) {
+        if (!controller.signal.aborted) setStarError(error instanceof Error ? error.message : 'Live-Daten nicht verfügbar')
+      } finally {
+        if (!controller.signal.aborted) setStarLoading(false)
+      }
+    }
+    void refresh()
+    const interval = setInterval(() => { void refresh() }, 5 * 60 * 1000)
+    return () => { controller.abort(); clearInterval(interval) }
+  }, [starActive])
+
+  useEffect(() => {
+    const data = starActive && starOrigin && liveSites
+      ? buildParkingStar(starOrigin, liveSites, starRadius)
+      : { type: 'FeatureCollection' as const, features: [] }
+    starDataRef.current = data
+    starOriginRef.current = starActive ? starOrigin : null
+    setStarCount(data.features.length)
+    const map = mapRef.current
+    const source = map?.getSource('parking-star') as maplibregl.GeoJSONSource | undefined
+    source?.setData(data)
+    const originSource = map?.getSource('parking-star-origin') as maplibregl.GeoJSONSource | undefined
+    originSource?.setData({
+      type: 'FeatureCollection',
+      features: starActive && starOrigin ? [{ type: 'Feature', geometry: { type: 'Point', coordinates: starOrigin }, properties: {} }] : [],
+    })
+  }, [starActive, starOrigin, liveSites, starRadius])
+
+  useEffect(() => {
+    if (!starActive || !starOrigin || !liveSites || (framedOriginRef.current === starOrigin && framedRadiusRef.current === starRadius)) return
+    const map = mapRef.current
+    if (!map) return
+    framedOriginRef.current = starOrigin
+    framedRadiusRef.current = starRadius
+    const bounds = new maplibregl.LngLatBounds(starOrigin, starOrigin)
+    for (const feature of starDataRef.current.features) {
+      const [lng, lat] = feature.geometry.coordinates[1]
+      bounds.extend([lng, lat])
+    }
+    map.fitBounds(bounds, { padding: { top: 60, right: 60, bottom: 60, left: 30 }, maxZoom: 8 })
+  }, [starActive, starOrigin, liveSites, starRadius])
 
   const fitPendingFilters = useCallback(async () => {
     const map = mapRef.current
@@ -291,13 +359,20 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
     })
 
     map.addControl(new maplibregl.NavigationControl(), 'top-right')
-    map.addControl(
-      new maplibregl.GeolocateControl({
-        positionOptions: { enableHighAccuracy: true },
-        trackUserLocation: false,
-      }),
-      'top-right'
-    )
+    const geolocate = new maplibregl.GeolocateControl({
+      positionOptions: { enableHighAccuracy: true },
+      trackUserLocation: false,
+    })
+    geolocate.on('geolocate', (event: GeolocationPosition) => {
+      if (starActiveRef.current) {
+        setStarOrigin([event.coords.longitude, event.coords.latitude])
+        setStarError('')
+      }
+    })
+    geolocate.on('error', () => {
+      if (starActiveRef.current) setStarError('Standort nicht verfügbar')
+    })
+    map.addControl(geolocate, 'top-right')
     map.addControl(
       new maplibregl.AttributionControl({
         customAttribution: 'Daten: <a href="https://www.toll-collect.de" target="_blank" rel="noopener">Toll Collect</a> via Mobilithek',
@@ -341,6 +416,33 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
       }, 'parking-circles') // insert below main layer so main layer renders on top
 
       applyFilters(map, roadFilterRef.current, operatorFilterRef.current, stateFilterRef.current)
+
+      map.addSource('parking-star', { type: 'geojson', data: starDataRef.current, lineMetrics: true })
+      for (const color of ['#9ca3af', '#22c55e', '#eab308', '#f97316', '#ef4444', '#7f1d1d']) {
+        map.addLayer({
+          id: `parking-star-lines-${color.slice(1)}`,
+          type: 'line',
+          source: 'parking-star',
+          filter: ['==', OCCUPANCY_COLOR, color],
+          paint: {
+            'line-gradient': ['interpolate', ['linear'], ['line-progress'], 0, '#ffffff', 1, color],
+            'line-width': ['get', 'spike_width'],
+            'line-opacity': 1,
+          },
+        }, 'parking-circles-dim')
+      }
+      map.addSource('parking-star-origin', {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: starOriginRef.current ? [{ type: 'Feature', geometry: { type: 'Point', coordinates: starOriginRef.current }, properties: {} }] : [],
+        },
+      })
+      map.addLayer({
+        id: 'parking-star-center', type: 'circle', source: 'parking-star-origin',
+        paint: { 'circle-radius': 7, 'circle-color': '#111827', 'circle-stroke-width': 3, 'circle-stroke-color': '#ffffff' },
+      })
+      map.getCanvas().style.cursor = starActiveRef.current ? 'crosshair' : ''
     })
 
     map.on('sourcedataloading', (e) => {
@@ -356,14 +458,22 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
 
     // Pointer cursor on hover
     map.on('mouseenter', 'parking-circles', () => {
-      map.getCanvas().style.cursor = 'pointer'
+      map.getCanvas().style.cursor = starActiveRef.current ? 'crosshair' : 'pointer'
     })
     map.on('mouseleave', 'parking-circles', () => {
-      map.getCanvas().style.cursor = ''
+      map.getCanvas().style.cursor = starActiveRef.current ? 'crosshair' : ''
+    })
+
+    map.on('click', event => {
+      if (starActiveRef.current) {
+        setStarOrigin([event.lngLat.lng, event.lngLat.lat])
+        setStarError('')
+      }
     })
 
     // Click → popup + side panel
     map.on('click', 'parking-circles', (e) => {
+      if (starActiveRef.current) return
       const feature = e.features?.[0]
       if (!feature) return
       const props = feature.properties as SiteProperties
@@ -392,6 +502,51 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
   return (
     <div className="relative w-full h-full">
       <div ref={containerRef} className="w-full h-full" />
+      <button
+        type="button"
+        aria-label="Sternanalyse"
+        title="Sternanalyse: Kartenpunkt oder eigenen Standort wählen"
+        aria-pressed={starActive}
+        data-active={starActive}
+        className="map-toolbar-button absolute top-[283px] right-[10px] z-20"
+        onClick={() => {
+          const active = !starActive
+          starActiveRef.current = active
+          framedOriginRef.current = null
+          setStarActive(active)
+          setStarError('')
+          if (mapRef.current) mapRef.current.getCanvas().style.cursor = active ? 'crosshair' : ''
+        }}
+      >
+        <Radar size={18} aria-hidden="true" />
+      </button>
+      {starActive && (
+        <div className="absolute top-[283px] right-[49px] z-20 flex w-16 flex-col items-center gap-1 rounded bg-white/95 px-2 py-2 text-xs text-gray-700 shadow ring-1 ring-black/10">
+          <output htmlFor="star-radius" className="whitespace-nowrap font-semibold tabular-nums">{starRadius} km</output>
+          <span aria-hidden="true">200</span>
+          <input
+            id="star-radius"
+            type="range"
+            min={10}
+            max={200}
+            step={1}
+            value={starRadius}
+            aria-label="Analyseradius"
+            aria-valuetext={`${starRadius} Kilometer`}
+            aria-orientation="vertical"
+            className="w-5 cursor-pointer accent-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
+            style={{ writingMode: 'vertical-lr', direction: 'rtl', height: 'min(144px, calc(100dvh - 420px))', minHeight: 48 }}
+            onChange={event => setStarRadius(Number(event.target.value))}
+          />
+          <span aria-hidden="true">10</span>
+        </div>
+      )}
+      {starActive && (
+        <div role="status" aria-live="polite" className="pointer-events-none absolute bottom-8 left-3 right-14 z-10 w-fit max-w-[calc(100%-4.25rem)] rounded bg-white/95 px-3 py-2 text-xs text-gray-700 shadow">
+          <strong>{starRadius} km · Live</strong>
+          <span className="ml-2">{starLoading ? 'Lade Live-Daten…' : starError || (!starOrigin ? 'Standort ausstehend' : starCount ? `${starCount} Rastplätze` : 'Keine Rastplätze im Umkreis')}</span>
+        </div>
+      )}
       {loading && (
         <div role="status" aria-live="polite" className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-2 bg-white/60">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-300 border-t-blue-600" />

@@ -25,6 +25,46 @@ function loadTypescript(path, imports = {}) {
 const filters = loadTypescript('lib/filter-url.ts')
 const mapFilters = loadTypescript('lib/map-filters.ts')
 
+const parkingStar = loadTypescript('lib/parking-star.ts', {
+  '@turf/distance': require('@turf/distance'),
+})
+
+test('parking star uses a 100 km great-circle cutoff, including off-screen sites in all directions', () => {
+  const data = { type: 'FeatureCollection', features: [
+    site(10, 50.899), site(10, 50.9), site(11, 50), site(9, 50), site(10, 49.5), site(10, 52),
+    site(NaN, 50), { type: 'Feature', geometry: null, properties: {} },
+  ] }
+  const result = parkingStar.buildParkingStar([10, 50], data)
+  assert.equal(result.features.length, 4)
+  for (const spike of result.features) {
+    assert.deepEqual(Array.from(spike.geometry.coordinates[0]), [10, 50])
+    assert.ok(spike.properties.distance_km <= 100)
+  }
+  assert.equal(parkingStar.buildParkingStar([10, 50], { type: 'FeatureCollection', features: [] }).features.length, 0)
+})
+
+test('parking star supports adjustable radii from 10 to 200 km', () => {
+  const data = { type: 'FeatureCollection', features: [
+    site(10, 50.05), site(10, 50.2), site(10, 51.5), site(10, 52),
+  ] }
+  assert.equal(parkingStar.buildParkingStar([10, 50], data, 10).features.length, 1)
+  assert.equal(parkingStar.buildParkingStar([10, 50], data).features.length, 2)
+  const expanded = parkingStar.buildParkingStar([10, 50], data, 200)
+  assert.equal(expanded.features.length, 3)
+  assert.ok(expanded.features.every(feature => feature.properties.distance_km <= 200))
+})
+
+test('parking star preserves live occupancy and scales width by total official plus tolerated capacity', () => {
+  const features = [25, 100, 250, null, -1].map(total => ({
+    ...site(10.2, 50),
+    properties: { total_spaces: total, official_spaces: 10, occupancy_pct: 125, name: '<Test>' },
+  }))
+  const result = parkingStar.buildParkingStar([10, 50], { type: 'FeatureCollection', features })
+  assert.deepEqual(Array.from(result.features, feature => feature.properties.spike_width), [1, 4, 10, 1, 1])
+  assert.equal(result.features[0].properties.occupancy_pct, 125)
+  assert.equal(result.features[0].properties.name, '<Test>')
+})
+
 test('Standortdetails is collapsible and renders addresses safely with missing-field labels', () => {
   const React = require('react')
   const { renderToStaticMarkup } = require('react-dom/server')

@@ -11,8 +11,7 @@ body {
 }
 
 .maplibregl-ctrl-top-right {
-  /* Seven 29px toolbar buttons, spaced 10px apart, precede native controls. */
-  top: calc(7 * 39px);
+  top: calc(8 * 39px);
 }
 
 .map-toolbar-button {
