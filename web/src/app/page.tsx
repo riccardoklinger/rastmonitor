@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { Building2, List, MapPinned, Menu, Route, Search, SlidersHorizontal } from 'lucide-react'
+import { Beer, Building2, Heart, List, MapPinned, Menu, Route, Search, SlidersHorizontal, X } from 'lucide-react'
 import RoadFilter from '@/components/RoadFilter'
 import OperatorFilter from '@/components/OperatorFilter'
 import { activeMapFilter, readHighlightedSite, readUrlFilters, updateFilterUrl, updateHighlightedSiteUrl } from '@/lib/filter-url'
@@ -17,6 +17,7 @@ const DayPicker = dynamic(() => import('@/components/DayPicker'), { ssr: false }
 const SearchBox = dynamic(() => import('@/components/SearchBox'), { ssr: false })
 
 type ViewMode = 'live' | 'history' | 'dailymax'
+const SPONSORS: { name: string; url?: string }[] = []
 
 export default function Home() {
   const [selectedSite, setSelectedSite] = useState<SiteProperties | null>(null)
@@ -24,6 +25,8 @@ export default function Home() {
   const [snapshotTime, setSnapshotTime] = useState<Date | null>(null)
   const [dailyDate, setDailyDate] = useState<string>('')
   const mapRef = useRef<MapHandle>(null)
+  const navigationRef = useRef<HTMLDetailsElement>(null)
+  const sponsorDialogRef = useRef<HTMLDialogElement>(null)
   const toolsRef = useRef<HTMLDivElement>(null)
   const searchToolRef = useRef<HTMLDetailsElement>(null)
   const roadToolRef = useRef<HTMLDetailsElement>(null)
@@ -200,7 +203,7 @@ export default function Home() {
       )}
 
       {/* Navigation menu above the map controls */}
-      <details name="map-tools" className="group absolute top-[10px] right-[10px] z-20 text-sm">
+      <details ref={navigationRef} name="map-tools" className="group absolute top-[10px] right-[10px] z-20 text-sm">
         <summary
           aria-label="Navigation öffnen"
           title="Navigation öffnen"
@@ -211,13 +214,61 @@ export default function Home() {
         <nav aria-label="Hauptnavigation" className="absolute top-[39px] right-[39px] flex w-40 max-w-[calc(100vw-59px)] max-h-[calc(100dvh-8rem)] flex-col overflow-y-auto rounded bg-white shadow-lg ring-1 ring-black/10">
           <a href="/table" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">Tabelle</a>
           <a href="https://rast-monitor.de/ogcapi/" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">API</a>
-          <a href="https://github.com/sponsors/riccardoklinger" target="_blank" rel="noopener noreferrer" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">♥ Sponsor</a>
+          <button type="button" onClick={() => {
+            if (navigationRef.current) navigationRef.current.open = false
+            sponsorDialogRef.current?.showModal()
+          }} className="px-4 py-2.5 text-left text-gray-700 hover:bg-gray-100">♥ Sponsor</button>
           <a href="/downloads" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">Download (GPKG, CSV)</a>
           <a href="/about" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">Über</a>
           <a href="/impressum" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">Impressum</a>
           <a href="https://github.com/riccardoklinger/rastmonitor" target="_blank" rel="noopener noreferrer" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">GitHub</a>
         </nav>
       </details>
+
+      <dialog
+        ref={sponsorDialogRef}
+        aria-labelledby="sponsor-title"
+        onClose={() => navigationRef.current?.querySelector('summary')?.focus()}
+        onKeyDown={event => {
+          if (event.key === 'Escape') {
+            event.preventDefault()
+            event.currentTarget.close()
+          }
+        }}
+        onClick={event => {
+          if (event.target === event.currentTarget) event.currentTarget.close()
+        }}
+        className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md overflow-y-auto rounded-lg bg-white p-0 text-gray-800 shadow-xl backdrop:bg-black/40"
+      >
+        <div className="flex items-center justify-between border-b border-gray-200 pl-5 pr-2 py-2">
+          <h2 id="sponsor-title" className="text-base font-semibold">RastMonitor unterstützen</h2>
+          <button type="button" onClick={() => sponsorDialogRef.current?.close()} aria-label="Schließen" title="Schließen" className="flex h-11 w-11 items-center justify-center rounded text-gray-600 hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600">
+            <X size={20} aria-hidden="true" />
+          </button>
+        </div>
+        <div className="space-y-5 p-5">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <a href="https://github.com/sponsors/riccardoklinger" target="_blank" rel="noopener noreferrer" className="flex min-h-11 items-center justify-center gap-2 rounded bg-gray-900 px-3 py-2 text-sm font-medium text-white hover:bg-gray-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600">
+              <Heart size={17} aria-hidden="true" /> GitHub Sponsors
+            </a>
+            <a href="https://www.paypal.com/paypalme/ricckli?locale.x=de_DE" target="_blank" rel="noopener noreferrer" className="flex min-h-11 items-center justify-center gap-2 rounded border border-blue-700 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600">
+              <Beer size={17} aria-hidden="true" /> Ein Bier via PayPal
+            </a>
+          </div>
+          <section aria-labelledby="sponsor-list-title">
+            <h3 id="sponsor-list-title" className="text-sm font-semibold">Unsere Sponsoren</h3>
+            {SPONSORS.length > 0 ? (
+              <ul className="mt-2 divide-y divide-gray-100 text-sm">
+                {SPONSORS.map(sponsor => (
+                  <li key={sponsor.name} className="py-2">
+                    {sponsor.url ? <a href={sponsor.url} target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:underline">{sponsor.name}</a> : sponsor.name}
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="mt-2 text-sm text-gray-500">Noch keine Sponsoren eingetragen.</p>}
+          </section>
+        </div>
+      </dialog>
 
       {/* Mode toggle — top centre */}
       <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex w-max whitespace-nowrap rounded-lg shadow border border-gray-200 overflow-hidden text-sm font-medium">
