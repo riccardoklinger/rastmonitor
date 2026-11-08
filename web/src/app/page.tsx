@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { Building2, List, MapPinned, Menu, Route, Search } from 'lucide-react'
+import { Building2, List, MapPinned, Menu, Route, Search, SlidersHorizontal } from 'lucide-react'
 import RoadFilter from '@/components/RoadFilter'
 import OperatorFilter from '@/components/OperatorFilter'
 import { activeMapFilter, readHighlightedSite, readUrlFilters, updateFilterUrl, updateHighlightedSiteUrl } from '@/lib/filter-url'
@@ -78,7 +78,7 @@ export default function Home() {
     }
     const dismissOnEscape = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
-      const tool = toolsRef.current?.querySelector<HTMLDetailsElement>('details[open]')
+      const tool = Array.from(toolsRef.current?.querySelectorAll<HTMLDetailsElement>('details[open]') ?? []).pop()
       if (tool) {
         tool.open = false
         tool.querySelector('summary')?.focus()
@@ -260,54 +260,64 @@ export default function Home() {
         </details>
 
         <details
-          ref={roadToolRef}
           name="map-tools"
           className="relative"
-          onToggle={event => setRoadToolOpen(event.currentTarget.open)}
+          onToggle={event => {
+            if (!event.currentTarget.open) {
+              event.currentTarget.querySelectorAll<HTMLDetailsElement>('details[open]').forEach(tool => { tool.open = false })
+            }
+          }}
         >
           <summary
-            aria-label="Autobahn filtern"
-            title={roadFilter ? `Autobahn filtern: ${roadFilter}` : 'Autobahn filtern'}
-            data-active={Boolean(roadFilter)}
+            aria-label="Filter öffnen"
+            title={roadFilter || operatorFilter || stateFilter ? `Aktiver Filter: ${roadFilter || operatorFilter || stateFilter}` : 'Filter öffnen'}
+            data-active={Boolean(roadFilter || operatorFilter || stateFilter)}
             className="map-toolbar-button"
           >
-            <Route size={18} aria-hidden="true" />
+            <SlidersHorizontal size={18} aria-hidden="true" />
           </summary>
-          <div className="absolute top-0 right-[39px] w-72 max-w-[calc(100vw-59px)]">
-            {roadToolOpen && <RoadFilter value={roadFilter} onSelect={handleRoadFilter} />}
-          </div>
-        </details>
+          <div className="absolute top-0 right-[39px] flex gap-[10px]">
+            <details ref={roadToolRef} name="filter-tools" className="relative" onToggle={event => setRoadToolOpen(event.currentTarget.open)}>
+              <summary
+                aria-label="Autobahn filtern"
+                title={roadFilter ? `Autobahn filtern: ${roadFilter}` : 'Autobahn filtern'}
+                data-active={Boolean(roadFilter)}
+                className="map-toolbar-button"
+              >
+                <Route size={18} aria-hidden="true" />
+              </summary>
+              <div className="absolute top-[39px] right-[-78px] w-72 max-w-[calc(100vw-59px)]">
+                {roadToolOpen && <RoadFilter value={roadFilter} onSelect={handleRoadFilter} />}
+              </div>
+            </details>
 
-        <details
-          ref={operatorToolRef}
-          name="map-tools"
-          className="relative"
-          onToggle={event => setOperatorToolOpen(event.currentTarget.open)}
-        >
-          <summary
-            aria-label="Betreiber filtern"
-            title={operatorFilter ? `Betreiber filtern: ${operatorFilter}` : 'Betreiber filtern'}
-            data-active={Boolean(operatorFilter)}
-            className="map-toolbar-button"
-          >
-            <Building2 size={18} aria-hidden="true" />
-          </summary>
-          <div className="absolute top-0 right-[39px] w-72 max-w-[calc(100vw-59px)]">
-            {operatorToolOpen && <OperatorFilter value={operatorFilter} onSelect={handleOperatorFilter} />}
-          </div>
-        </details>
+            <details ref={operatorToolRef} name="filter-tools" className="relative" onToggle={event => setOperatorToolOpen(event.currentTarget.open)}>
+              <summary
+                aria-label="Betreiber filtern"
+                title={operatorFilter ? `Betreiber filtern: ${operatorFilter}` : 'Betreiber filtern'}
+                data-active={Boolean(operatorFilter)}
+                className="map-toolbar-button"
+              >
+                <Building2 size={18} aria-hidden="true" />
+              </summary>
+              <div className="absolute top-[39px] right-[-39px] w-72 max-w-[calc(100vw-59px)]">
+                {operatorToolOpen && <OperatorFilter value={operatorFilter} onSelect={handleOperatorFilter} />}
+              </div>
+            </details>
 
-        <details ref={stateToolRef} name="map-tools" className="relative" onToggle={event => setStateToolOpen(event.currentTarget.open)}>
-          <summary
-            aria-label="Bundesland filtern"
-            title={stateFilter ? `Bundesland filtern: ${stateFilter}` : 'Bundesland filtern'}
-            data-active={Boolean(stateFilter)}
-            className="map-toolbar-button"
-          >
-            <MapPinned size={18} aria-hidden="true" />
-          </summary>
-          <div className="absolute top-0 right-[39px] w-72 max-w-[calc(100vw-59px)]">
-            {stateToolOpen && <OperatorFilter kind="state" value={stateFilter} onSelect={handleStateFilter} />}
+            <details ref={stateToolRef} name="filter-tools" className="relative" onToggle={event => setStateToolOpen(event.currentTarget.open)}>
+              <summary
+                aria-label="Bundesland filtern"
+                title={stateFilter ? `Bundesland filtern: ${stateFilter}` : 'Bundesland filtern'}
+                data-active={Boolean(stateFilter)}
+                className="map-toolbar-button"
+              >
+                <MapPinned size={18} aria-hidden="true" />
+              </summary>
+              <div className="absolute top-[39px] right-0 w-72 max-w-[calc(100vw-59px)]">
+                {stateToolOpen && <OperatorFilter kind="state" value={stateFilter} onSelect={handleStateFilter} />}
+              </div>
+            </details>
           </div>
         </details>
 

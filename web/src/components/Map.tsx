@@ -1,10 +1,12 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react'
+import { createRoot } from 'react-dom/client'
 import maplibregl from 'maplibre-gl'
-import { Layers, Radar } from 'lucide-react'
+import { Layers, Navigation, Radar } from 'lucide-react'
 import { applyFilters, zoomToFilteredSites, zoomToHighlightedSite } from '@/lib/map-filters'
-import { buildParkingStar, STAR_MINUTES, STAR_RADIUS_KM, type ParkingIsochrone } from '@/lib/parking-star'
+import { buildDirectionsUrl, type MapProvider } from '@/lib/map-directions'
+import { buildParkingStar, summarizeParkingAvailability, STAR_MINUTES, STAR_RADIUS_KM, type ParkingIsochrone } from '@/lib/parking-star'
 
 // Colour scale by occupancy_pct
 // coalesce maps null/missing → -1, which falls into the grey bucket below 0.
@@ -19,6 +21,8 @@ const OCCUPANCY_COLOR: any = [
   95, '#ef4444', //  95–100 % → red
   100,'#7f1d1d', //     >100 % → dark red (overcrowded)
 ]
+const STAR_COLORS = ['#9ca3af', '#22c55e', '#eab308', '#f97316', '#ef4444', '#7f1d1d']
+const STAR_LINE_LAYER_IDS = STAR_COLORS.map(color => `parking-star-lines-${color.slice(1)}`)
 
 export interface SiteProperties {
   datex_id: string
@@ -187,12 +191,80 @@ function showSitePopup(map: maplibregl.Map, lngLat: maplibregl.LngLatLike, site:
     .addTo(map)
 }
 
+function getDirectionsProvider(): MapProvider {
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    ? 'apple' : 'google'
+}
+
+function occupancyColor(pct: number | null | undefined): string {
+  if (pct == null || !Number.isFinite(Number(pct))) return '#9ca3af'
+  if (pct > 100) return '#7f1d1d'
+  if (pct >= 95) return '#ef4444'
+  if (pct >= 80) return '#f97316'
+  if (pct >= 50) return '#eab308'
+  return '#22c55e'
+}
+
+function ReachabilityPopup({ site, origin, destination }: {
+  site: SiteProperties
+  origin: [number, number]
+  destination: [number, number]
+}) {
+  const provider = getDirectionsProvider()
+  const providerName = provider === 'apple' ? 'Apple Karten' : 'Google Maps'
+  const streetAddress = [site.street, site.house_number].filter(value => value?.trim()).join(' ')
+  const locality = [site.postcode, site.city].filter(value => value?.trim()).join(' ')
+  const occupancy = site.occupancy_pct != null && Number.isFinite(Number(site.occupancy_pct))
+    ? `${Number(site.occupancy_pct).toFixed(1)} %`
+    : 'Keine Daten'
+
+  return (
+    <div className="min-w-52 pr-1 text-sm text-gray-800">
+      <strong className="block pr-1 text-sm font-semibold">{site.name || 'Rastplatz'}</strong>
+      <p className="mt-1 text-xs text-gray-600">
+        {streetAddress || 'Keine Straßenadresse'}
+        {locality && <><br />{locality}</>}
+      </p>
+      <p className="mt-2 text-xs text-gray-700">Aktuelle Auslastung: <strong>{occupancy}</strong></p>
+      <a
+        href={buildDirectionsUrl(origin, destination, provider)}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={`Route zum Rastplatz in ${providerName} öffnen`}
+        title={`Route in ${providerName} öffnen`}
+        className="mt-2 inline-flex h-11 min-w-11 items-center justify-center rounded border border-gray-200 text-blue-700 hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
+      >
+        <Navigation size={19} aria-hidden="true" />
+      </a>
+    </div>
+  )
+}
+
+function showReachabilityPopup(
+  map: maplibregl.Map,
+  site: SiteProperties,
+  origin: [number, number],
+  destination: [number, number]
+) {
+  const container = document.createElement('div')
+  const root = createRoot(container)
+  root.render(<ReachabilityPopup site={site} origin={origin} destination={destination} />)
+  const popup = new maplibregl.Popup({ closeButton: true, maxWidth: '280px', offset: 12, className: 'site-map-popup' })
+    .setLngLat(destination)
+    .setDOMContent(container)
+  popup.on('close', () => root.unmount())
+  popup.addTo(map)
+  return popup
+}
+
 const Map = forwardRef<MapHandle, MapProps>(function Map(
   { onSiteSelect, onSiteClick, dataUrl = '/api/sites', metricLabel = 'Auslastung', highlightSiteId = '', operatorFilter = '', roadFilter = '', stateFilter = '' },
   ref
 ) {
   const containerRef    = useRef<HTMLDivElement>(null)
   const mapRef          = useRef<maplibregl.Map | null>(null)
+  const popupRef        = useRef<maplibregl.Popup | null>(null)
   const dataUrlRef      = useRef(dataUrl)
   const metricLabelRef  = useRef(metricLabel)
   const roadFilterRef   = useRef(roadFilter)
@@ -227,6 +299,8 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
   const framedModeRef = useRef<boolean | null>(null)
   const starDataRef = useRef<GeoJSON.FeatureCollection<GeoJSON.LineString>>({ type: 'FeatureCollection', features: [] })
   const isochroneDataRef = useRef<ParkingIsochrone>({ type: 'FeatureCollection', features: [] })
+  const starResults = starDataRef.current.features
+  const availability = summarizeParkingAvailability(starResults)
   const distanceMode = routingAvailable === false
   const starValue = distanceMode ? starRadius : starMinutes
   const starDraftValue = distanceMode ? starDraftRadius : starDraftMinutes
@@ -237,6 +311,14 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
     else setStarMinutes(value)
     setStarAdjusting(false)
   }
+  const replacePopup = useCallback((create: () => maplibregl.Popup) => {
+    popupRef.current?.remove()
+    const popup = create()
+    popupRef.current = popup
+    popup.on('close', () => {
+      if (popupRef.current === popup) popupRef.current = null
+    })
+  }, [])
 
   useEffect(() => {
     if (starAdjusting) {
@@ -394,7 +476,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
         if (selected) {
           const [lng, lat] = selected.geometry.coordinates
           const site = selected.properties as SiteProperties
-          showSitePopup(map, [lng, lat], site, metricLabelRef.current)
+          replacePopup(() => showSitePopup(map, [lng, lat], site, metricLabelRef.current))
           onSiteSelect(site)
         }
         return
@@ -403,13 +485,13 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
       if (singleMatch) {
         const [lng, lat] = singleMatch.geometry.coordinates
         const site = singleMatch.properties as SiteProperties
-        showSitePopup(map, [lng, lat], site, metricLabelRef.current)
+        replacePopup(() => showSitePopup(map, [lng, lat], site, metricLabelRef.current))
         onSiteSelect(site)
       }
     } catch (error) {
       console.error('Could not zoom to filtered sites:', error)
     }
-  }, [onSiteSelect])
+  }, [onSiteSelect, replacePopup])
 
   useEffect(() => {
     const dismissMenu = (event: PointerEvent) => {
@@ -435,7 +517,8 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
       mapRef.current?.flyTo({ center: [lng, lat], zoom, essential: true })
     },
     showPopup: (lng, lat, site, label = metricLabelRef.current) => {
-      if (mapRef.current) showSitePopup(mapRef.current, [lng, lat], site, label)
+      const map = mapRef.current
+      if (map) replacePopup(() => showSitePopup(map, [lng, lat], site, label))
     },
   }))
 
@@ -548,9 +631,10 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
         paint: { 'line-color': '#0891b2', 'line-opacity': 0.7, 'line-width': 1.5, 'line-dasharray': [3, 2] },
       }, 'parking-circles-dim')
       map.addSource('parking-star', { type: 'geojson', data: starDataRef.current, lineMetrics: true })
-      for (const color of ['#9ca3af', '#22c55e', '#eab308', '#f97316', '#ef4444', '#7f1d1d']) {
+      for (const color of STAR_COLORS) {
+        const layerId = `parking-star-lines-${color.slice(1)}`
         map.addLayer({
-          id: `parking-star-lines-${color.slice(1)}`,
+          id: layerId,
           type: 'line',
           source: 'parking-star',
           filter: ['==', OCCUPANCY_COLOR, color],
@@ -560,6 +644,18 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
             'line-opacity': 1,
           },
         }, 'parking-circles-dim')
+        map.on('mouseenter', layerId, () => { map.getCanvas().style.cursor = 'pointer' })
+        map.on('mouseleave', layerId, () => { map.getCanvas().style.cursor = starActiveRef.current ? 'crosshair' : '' })
+        map.on('click', layerId, event => {
+          const feature = event.features?.find(candidate => candidate.geometry?.type === 'LineString')
+          if (!feature || feature.geometry.type !== 'LineString' || feature.geometry.coordinates.length < 2) return
+          const coordinates = feature.geometry.coordinates
+          const origin = [Number(coordinates[0][0]), Number(coordinates[0][1])] as [number, number]
+          const endpoint = coordinates[coordinates.length - 1]
+          const destination = [Number(endpoint[0]), Number(endpoint[1])] as [number, number]
+          if (![...origin, ...destination].every(Number.isFinite)) return
+          replacePopup(() => showReachabilityPopup(map, feature.properties as SiteProperties, origin, destination))
+        })
       }
       map.addSource('parking-star-origin', {
         type: 'geojson',
@@ -596,23 +692,39 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
 
     map.on('click', event => {
       if (starActiveRef.current) {
+        const interactiveLayers = [
+          'parking-circles',
+          'parking-circles-dim',
+          ...STAR_LINE_LAYER_IDS,
+        ].filter(layerId => map.getLayer(layerId) && map.getLayoutProperty(layerId, 'visibility') !== 'none')
+        if (interactiveLayers.length && map.queryRenderedFeatures(event.point, { layers: interactiveLayers }).length) return
         setStarOrigin([event.lngLat.lng, event.lngLat.lat])
         setStarError('')
       }
     })
 
-    // Click → popup + side panel
-    map.on('click', 'parking-circles', (e) => {
-      if (starActiveRef.current) return
+    // Click parking points for site details, or reachability directions when active.
+    const handleParkingPointClick = (e: maplibregl.MapLayerMouseEvent) => {
       const feature = e.features?.[0]
       if (!feature) return
       const props = feature.properties as SiteProperties
+      if (feature.geometry?.type !== 'Point') return
+      const [lng, lat] = feature.geometry.coordinates
 
-      showSitePopup(map, e.lngLat, props, metricLabelRef.current)
+      if (starActiveRef.current) {
+        const origin = starOriginRef.current
+        if (origin) replacePopup(() => showReachabilityPopup(map, props, origin, [lng, lat]))
+        else setStarOrigin([lng, lat])
+        return
+      }
+
+      replacePopup(() => showSitePopup(map, [lng, lat], props, metricLabelRef.current))
 
       onSiteSelect(props)
       onSiteClick?.(props)
-    })
+    }
+    map.on('click', 'parking-circles', handleParkingPointClick)
+    map.on('click', 'parking-circles-dim', handleParkingPointClick)
 
     mapRef.current = map
 
@@ -639,7 +751,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
         title={distanceMode ? 'Luftlinienanalyse: Kartenpunkt oder eigenen Standort wählen' : 'Lkw-Fahrzeitanalyse: Kartenpunkt oder eigenen Standort wählen'}
         aria-pressed={starActive}
         data-active={starActive}
-        className="map-toolbar-button absolute top-[283px] right-[10px] z-20"
+        className="map-toolbar-button absolute top-[205px] right-[10px] z-20"
         onClick={() => {
           const active = !starActive
           starActiveRef.current = active
@@ -652,7 +764,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
         <Radar size={18} aria-hidden="true" />
       </button>
       {starActive && (
-        <div className="absolute top-[283px] right-[49px] z-20 flex w-20 flex-col items-center gap-1 rounded bg-white/95 px-2 py-2 text-xs text-gray-700 shadow ring-1 ring-black/10">
+        <div className="absolute top-[205px] right-[49px] z-20 flex w-20 flex-col items-center gap-1 rounded bg-white/95 px-2 py-2 text-xs text-gray-700 shadow ring-1 ring-black/10">
           <output htmlFor="star-minutes" className="whitespace-nowrap font-semibold tabular-nums">{starDraftValue} {starUnit}</output>
           <span aria-hidden="true">{distanceMode ? 200 : 60}</span>
           <input
@@ -694,7 +806,68 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
           <span aria-hidden="true">10</span>
         </div>
       )}
-      {starActive && (
+      {starActive && starOrigin && starResults.length > 0 && (
+        <section
+          aria-label="Rastplätze im Einzugsgebiet"
+          className="absolute bottom-2 left-3 right-3 z-20 flex max-h-[34dvh] flex-col overflow-hidden rounded border border-gray-200 bg-white/95 text-gray-800 shadow-lg"
+        >
+          <header className="shrink-0 border-b border-gray-200 px-3 py-2">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+              <strong className="text-xs font-semibold">
+                {availability.unknown === starResults.length ? 'Freie Plätze: keine Daten' : `${availability.estimated ? '~' : ''}${availability.total} freie Plätze`}
+                {' · '}{starResults.length} Rastplätze · {starValue} {starUnit}
+              </strong>
+              <span className="text-xs text-gray-600">
+                {routingLoading ? 'Berechne Fahrzeit…' : starLoading ? 'Lade Live-Daten…' : `${distanceMode ? 'Luftlinie' : 'Lkw'} · Live`}
+              </span>
+            </div>
+            {availability.unknown > 0 && <p className="mt-1 text-xs text-gray-600">{availability.unknown} {availability.unknown === 1 ? 'Rastplatz' : 'Rastplätze'} ohne Angaben zu freien Plätzen</p>}
+            {distanceMode && <p className="mt-1 text-xs text-amber-800">Isochronen derzeit nicht verfügbar. Luftlinienentfernung, keine Fahrzeit.</p>}
+            {(routingError || starError) && <p role="status" className="mt-1 text-xs text-amber-800">{routingError || starError}</p>}
+          </header>
+          <ul className="grid min-h-0 grid-cols-1 gap-x-3 overflow-y-auto px-3 sm:grid-cols-2 lg:grid-cols-3">
+            {availability.sites.map(({ feature, vacant, estimated }) => {
+              if (feature.geometry.type !== 'LineString' || feature.geometry.coordinates.length < 2) return null
+              const site = feature.properties as SiteProperties
+              const endpoint = feature.geometry.coordinates[feature.geometry.coordinates.length - 1]
+              const destination: [number, number] = [Number(endpoint[0]), Number(endpoint[1])]
+              if (!destination.every(Number.isFinite)) return null
+              const streetAddress = [site.street, site.house_number].filter(value => value?.trim()).join(' ')
+              const locality = [site.postcode, site.city].filter(value => value?.trim()).join(' ')
+              const address = [streetAddress, locality].filter(Boolean).join(', ') || 'Keine Adresse verfügbar'
+              const occupancy = site.occupancy_pct != null && Number.isFinite(Number(site.occupancy_pct))
+                ? `${Number(site.occupancy_pct).toFixed(1)} %`
+                : 'Keine Daten'
+              const provider = getDirectionsProvider()
+              const providerName = provider === 'apple' ? 'Apple Karten' : 'Google Maps'
+              return (
+                <li key={site.datex_id} className="flex min-w-0 items-center gap-3 border-b border-gray-100 py-2">
+                  <div className="min-w-0 flex-1">
+                    <strong className="block truncate text-xs font-medium" title={site.name}>{site.name || 'Rastplatz'}</strong>
+                    <span className="block truncate text-xs text-gray-600" title={address}>{address}</span>
+                    <span className="mt-0.5 flex items-center gap-1.5 text-xs text-gray-700">
+                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: occupancyColor(site.occupancy_pct) }} aria-hidden="true" />
+                      {vacant === null ? 'Freie Plätze: keine Daten' : `${estimated ? '~' : ''}${vacant} frei`} · {occupancy}
+                    </span>
+                    <span className="block text-xs text-gray-600">{Number(feature.properties?.distance_km).toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km Luftlinie</span>
+                  </div>
+                  <a
+                    href={buildDirectionsUrl(starOrigin, destination, provider)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Route zu ${site.name || 'Rastplatz'} in ${providerName} öffnen`}
+                    title={`Route in ${providerName} öffnen`}
+                    className="inline-flex h-11 min-w-11 shrink-0 items-center justify-center rounded border border-gray-200 text-blue-700 hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
+                  >
+                    <Navigation size={19} aria-hidden="true" />
+                  </a>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      )}
+      {starActive && starResults.length === 0 && (
         <div role="status" aria-live="polite" className="pointer-events-none absolute bottom-8 left-3 right-14 z-10 w-fit max-w-[calc(100%-4.25rem)] rounded bg-white/95 px-3 py-2 text-xs text-gray-700 shadow">
           <strong>{starValue} {starUnit} · {distanceMode ? 'Luftlinie' : 'Lkw'} · Live</strong>
           <span className="ml-2">{routingAvailable === null ? 'Prüfe Routing…' : routingLoading ? 'Berechne Fahrzeit…' : starLoading ? 'Lade Live-Daten…' : routingError || starError || (!starOrigin ? 'Standort ausstehend' : starCount ? `${starCount} Rastplätze` : distanceMode ? 'Keine Rastplätze im Radius' : 'Keine erreichbaren Rastplätze')}</span>

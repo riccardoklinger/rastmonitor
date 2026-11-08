@@ -11,7 +11,7 @@ body {
 }
 
 .maplibregl-ctrl-top-right {
-  top: calc(8 * 39px);
+  top: calc(6 * 39px);
 }
 
 .map-toolbar-button {

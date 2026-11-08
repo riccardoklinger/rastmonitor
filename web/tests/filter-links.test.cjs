@@ -30,6 +30,24 @@ const parkingStar = loadTypescript('lib/parking-star.ts', {
   '@turf/distance': require('@turf/distance'),
 })
 
+const mapDirections = loadTypescript('lib/map-directions.ts')
+
+test('external directions use the reachability origin and clicked site in latitude-longitude order', () => {
+  const origin = [13.405, 52.52]
+  const destination = [13.065672, 52.703848]
+  const google = new URL(mapDirections.buildDirectionsUrl(origin, destination, 'google'))
+  assert.equal(google.origin, 'https://www.google.com')
+  assert.equal(google.searchParams.get('api'), '1')
+  assert.equal(google.searchParams.get('origin'), '52.52,13.405')
+  assert.equal(google.searchParams.get('destination'), '52.703848,13.065672')
+  assert.equal(google.searchParams.get('travelmode'), 'driving')
+  const apple = new URL(mapDirections.buildDirectionsUrl(origin, destination, 'apple'))
+  assert.equal(apple.origin, 'https://maps.apple.com')
+  assert.equal(apple.searchParams.get('saddr'), '52.52,13.405')
+  assert.equal(apple.searchParams.get('daddr'), '52.703848,13.065672')
+  assert.equal(apple.searchParams.get('dirflg'), 'd')
+})
+
 test('parking star fallback uses real kilometre distances and preserves capacity and occupancy', () => {
   const data = { type: 'FeatureCollection', features: [
     { type: 'Feature', geometry: { type: 'Point', coordinates: [10, 50.05] }, properties: { total_spaces: 100, occupancy_pct: 125 } },
@@ -42,7 +60,33 @@ test('parking star fallback uses real kilometre distances and preserves capacity
   assert.equal(normal.features.length, 2)
   assert.equal(normal.features[0].properties.spike_width, 4)
   assert.equal(normal.features[0].properties.occupancy_pct, 125)
+  assert.ok(Math.abs(normal.features[0].properties.distance_km - 5.56) < 0.02)
+  const polygon = { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[[9, 49], [11, 49], [11, 51], [9, 51], [9, 49]]] } }] }
+  const withinPolygon = parkingStar.buildParkingStar([10, 50], data, polygon)
+  assert.equal(withinPolygon.features[0].properties.distance_km, normal.features[0].properties.distance_km)
   assert.equal(parkingStar.buildParkingStar([10, 50], data, 200).features.length, 3)
+})
+
+test('reachable sites sort by straight-line distance and report estimated and missing availability', () => {
+  const feature = (name, properties) => ({ type: 'Feature', geometry: { type: 'LineString', coordinates: [[0, 0], [1, 1]] }, properties: { name, ...properties } })
+  const features = [
+    feature('unknown', { distance_km: 1.04, vacant_spaces: null, total_spaces: null, occupancy_pct: null }),
+    feature('estimated', { distance_km: 1.03, vacant_spaces: null, total_spaces: 20, occupancy_pct: 25 }),
+    feature('reported', { distance_km: 5, vacant_spaces: 30, total_spaces: 20, occupancy_pct: 90 }),
+    feature('overcrowded', { distance_km: 3, vacant_spaces: null, total_spaces: 20, occupancy_pct: 125 }),
+    feature('zero', { vacant_spaces: 0 }),
+  ]
+  const summary = parkingStar.summarizeParkingAvailability(features)
+  assert.deepEqual(Array.from(summary.sites, site => site.feature.properties.name), ['estimated', 'unknown', 'overcrowded', 'reported', 'zero'])
+  assert.equal(summary.total, 45)
+  assert.equal(summary.unknown, 1)
+  assert.equal(summary.estimated, true)
+  assert.equal(summary.sites[0].estimated, true)
+  assert.equal(features[0].properties.name, 'unknown')
+  const missing = parkingStar.summarizeParkingAvailability([features[0]])
+  assert.equal(missing.total, 0)
+  assert.equal(missing.unknown, 1)
+  assert.equal(missing.estimated, false)
 })
 
 const isochrone = { type: 'FeatureCollection', features: [{
@@ -201,8 +245,10 @@ test('routing slider commits on release and preserves separate fallback and trav
   }
   const Map = loadTypescript('components/Map.tsx', {
     react: React, 'react/jsx-runtime': require('react/jsx-runtime'),
-    'maplibre-gl': {}, 'lucide-react': { Layers: 'span', Radar: 'span' },
+    'react-dom/client': { createRoot() {} },
+    'maplibre-gl': {}, 'lucide-react': { Layers: 'span', Navigation: 'span', Radar: 'span' },
     '@/lib/map-filters': mapFilters, '@/lib/parking-star': parkingStar,
+    '@/lib/map-directions': { buildDirectionsUrl: () => 'https://maps.example.test/' },
   }, {
     process: { env: {} }, AbortController, AbortSignal,
     fetch: async () => Response.json({ available }),
