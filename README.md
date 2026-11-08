@@ -35,6 +35,10 @@ Alle Filter gelten in allen Zeitansichten; andere Standorte bleiben abgedimmt.
 Beim Setzen eines Filters zoomt die Karte auf den umschließenden Bereich aller
 Treffer, auch beim Öffnen eines Filterlinks. Bei genau einem Treffer werden
 automatisch das Karten-Popup und die Detailseitenleiste geöffnet.
+Der Parameter `highlight=DATEX_ID` öffnet und fokussiert genau einen Rastplatz
+(Zoomstufe 10), ohne andere Punkte zu filtern; `DATEX_ID` ist die ID aus der
+Standort-API. Wenn `highlight` und Filterparameter gemeinsam vorkommen, hat
+`highlight` Vorrang.
 Ohne Treffer oder beim Zurücksetzen aller Filter bleibt
 der Kartenausschnitt unverändert. Automatische Datenaktualisierungen verschieben
 die Karte nicht.
@@ -60,8 +64,10 @@ Luftlinienradius nutzbar (100 km als Standard, 10 bis 200 km einstellbar).
 Sobald das Routing wieder erreichbar ist, werden erneut Isochronen verwendet.
 Openrouteservice verwendet ausschließlich einen Deutschland-PBF und eigene
 Routing-Volumes; die bestehenden Parkplatztabellen bleiben unverändert. Isochronen
-werden nicht gespeichert oder gecacht. Berechnungen sind ohne Login nutzbar,
-aber auf eine Anfrage pro fünf Sekunden je IP begrenzt. Ein separater täglicher
+werden nicht gespeichert oder gecacht. Berechnungen sind ohne Login nutzbar.
+Pro App-Prozess können zwei Berechnungen gleichzeitig laufen; vier weitere
+Anfragen warten bis zu zehn Sekunden in einer Warteschlange. Weitere oder zu
+lange wartende Anfragen erhalten eine Auslastungsmeldung. Ein separater täglicher
 Nutzungszähler speichert nur Summen, keine IP-Adressen oder Koordinaten.
 Einrichtung und Grenzen der Fahrzeitberechnung:
 [Lokales HGV-Routing](routing/README.md).

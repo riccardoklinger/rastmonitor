@@ -58,3 +58,15 @@ export function zoomToFilteredSites(map: Map, data: GeoJSON.GeoJSON, road: strin
   }
   return points.length === 1 ? singleMatch : undefined
 }
+
+export function zoomToHighlightedSite(map: Map, data: GeoJSON.GeoJSON, datexId: string) {
+  if (!datexId || data.type !== 'FeatureCollection') return
+  const feature = data.features.find(candidate =>
+    candidate.geometry?.type === 'Point' && candidate.properties?.datex_id === datexId
+  )
+  if (!feature || feature.geometry.type !== 'Point') return
+  const [lng, lat] = feature.geometry.coordinates
+  if (!Number.isFinite(lng) || !Number.isFinite(lat)) return
+  map.flyTo({ center: [lng, lat], zoom: 10, essential: true })
+  return feature as GeoJSON.Feature<GeoJSON.Point>
+}

@@ -68,6 +68,18 @@ test('self-hosted map style uses supported basemaps with local tile and asset UR
   assert.deepEqual(validateStyleMin(body).map(error => error.message), [])
 })
 
+test('highlight URL parameter resolves a single parking site without changing filters', () => {
+  const params = new URLSearchParams('highlight=DE-HE-42&operator=Autobahn')
+  assert.equal(filters.readHighlightedSite(params), 'DE-HE-42')
+  assert.equal(filters.readHighlightedSite(new URLSearchParams('Highlight=DE-HE-43')), 'DE-HE-43')
+  const url = new URL('https://example.test/?highlight=DE-HE-42&other=keep#map')
+  filters.updateFilterUrl(url, 'operator', 'Autobahn')
+  assert.equal(url.searchParams.has('highlight'), false)
+  assert.equal(url.searchParams.get('operator'), 'Autobahn')
+  assert.equal(url.searchParams.get('other'), 'keep')
+  assert.equal(url.hash, '#map')
+})
+
 const routingQueue = () => loadTypescript('lib/routing-queue.ts', {}, { setTimeout, clearTimeout })
 const unrestrictedRouting = {
   '@/lib/routing-usage': { recordRoutingUsage: async () => {} },
@@ -501,9 +513,9 @@ test('multiple, coincident, missing and unfiltered results do not request automa
   }
 })
 
-test('one matching site centers the map at exactly zoom 8', () => {
+test('one matching site centers the map at exactly zoom 10', () => {
   assert.deepEqual(zoom([site(10, 52), site(14, 54, 'A4')], 'a2', ''), [
-    { method: 'flyTo', options: { center: [10, 52], zoom: 8 } },
+    { method: 'flyTo', options: { center: [10, 52], zoom: 10 } },
   ])
 })
 
@@ -518,8 +530,22 @@ test('multiple matches fit the complete bounding box, excluding dimmed sites', (
 
 test('operator-only filtering is case-insensitive and uses substring matching', () => {
   assert.deepEqual(zoom([site(10, 52, 'A4'), site(11, 51, 'A2', 'Other')], '', 'AUTOBAHN'), [
-    { method: 'flyTo', options: { center: [10, 52], zoom: 8 } },
+    { method: 'flyTo', options: { center: [10, 52], zoom: 10 } },
   ])
+})
+
+test('highlight zooms only the exact datex_id to level 10 without filtering other sites', () => {
+  const matches = []
+  const map = { flyTo: options => matches.push(options) }
+  const selected = site(10, 52)
+  selected.properties.datex_id = 'DE-HE-42'
+  const other = site(11, 51)
+  other.properties.datex_id = 'DE-HE-420'
+  const data = { type: 'FeatureCollection', features: [selected, other] }
+  assert.equal(mapFilters.zoomToHighlightedSite(map, data, 'DE-HE-42'), selected)
+  assert.deepEqual(JSON.parse(JSON.stringify(matches)), [{ center: [10, 52], zoom: 10, essential: true }])
+  assert.equal(mapFilters.zoomToHighlightedSite(map, data, 'DE-HE-404'), undefined)
+  assert.equal(matches.length, 1)
 })
 
 test('no active filters, no matches and empty data leave the camera unchanged', () => {
@@ -529,9 +555,9 @@ test('no active filters, no matches and empty data leave the camera unchanged', 
   assert.deepEqual(zoom([site(10, 52, null, null)], 'A2', 'Autobahn'), [])
 })
 
-test('coincident sites also use zoom 8 instead of a degenerate bounding box', () => {
+test('coincident sites also use zoom 10 instead of a degenerate bounding box', () => {
   assert.deepEqual(zoom([site(10, 52), site(10, 52)], 'A2', ''), [
-    { method: 'flyTo', options: { center: [10, 52], zoom: 8 } },
+    { method: 'flyTo', options: { center: [10, 52], zoom: 10 } },
   ])
 })
 
@@ -561,6 +587,45 @@ test('reads and normalizes combined, encoded and empty URL filters', () => {
   const empty = filters.readUrlFilters(new URLSearchParams('operator=%20&road='))
   assert.equal(empty.operator, '')
   assert.equal(empty.road, '')
+})
+
+test('reads highlight site IDs and removes highlight when a filter is changed', () => {
+  assert.equal(filters.readHighlightedSite(new URLSearchParams('highlight=DE-HE-42')), 'DE-HE-42')
+  assert.equal(filters.readHighlightedSite(new URLSearchParams('Highlight=DE-HE-43')), 'DE-HE-43')
+  const url = new URL('https://example.test/?highlight=DE-HE-42&other=keep#map')
+  filters.updateFilterUrl(url, 'operator', 'Autobahn')
+  assert.equal(url.searchParams.has('highlight'), false)
+  assert.equal(url.searchParams.get('operator'), 'Autobahn')
+  assert.equal(url.searchParams.get('other'), 'keep')
+  assert.equal(url.hash, '#map')
+})
+
+test('opening a site writes highlight and removes filters; closing clears only highlight', () => {
+  const url = new URL('https://example.test/?operator=Autobahn&road=A2&state=Hessen&other=keep#map')
+  filters.updateHighlightedSiteUrl(url, 'DE-HE-42')
+  assert.equal(url.searchParams.get('highlight'), 'DE-HE-42')
+  assert.equal(url.searchParams.has('operator'), false)
+  assert.equal(url.searchParams.has('road'), false)
+  assert.equal(url.searchParams.has('state'), false)
+  assert.equal(url.searchParams.get('other'), 'keep')
+  assert.equal(url.hash, '#map')
+  filters.updateHighlightedSiteUrl(url, '')
+  assert.equal(url.searchParams.has('highlight'), false)
+  assert.equal(url.searchParams.get('other'), 'keep')
+})
+
+test('highlight resolves exact datex_id, zooms to 10, and ignores absent sites', () => {
+  const calls = []
+  const map = { flyTo: options => calls.push(options) }
+  const selected = site(10, 52)
+  selected.properties.datex_id = 'DE-HE-42'
+  const prefixMatch = site(11, 51)
+  prefixMatch.properties.datex_id = 'DE-HE-420'
+  const data = { type: 'FeatureCollection', features: [selected, prefixMatch] }
+  assert.equal(mapFilters.zoomToHighlightedSite(map, data, 'DE-HE-42'), selected)
+  assert.deepEqual(JSON.parse(JSON.stringify(calls)), [{ center: [10, 52], zoom: 10, essential: true }])
+  assert.equal(mapFilters.zoomToHighlightedSite(map, data, 'DE-HE-404'), undefined)
+  assert.equal(calls.length, 1)
 })
 
 test('switching filters removes the previous parameter and preserves unrelated query and fragment', () => {

@@ -6,7 +6,25 @@ export function readUrlFilters(params: URLSearchParams) {
   }
 }
 
+export function readHighlightedSite(params: URLSearchParams) {
+  return (params.get('highlight') ?? params.get('Highlight') ?? '').trim()
+}
+
+export function updateHighlightedSiteUrl(url: URL, datexId: string) {
+  if (datexId) {
+    url.searchParams.set('highlight', datexId)
+    url.searchParams.delete('Highlight')
+    for (const filter of ['operator', 'road', 'state']) url.searchParams.delete(filter)
+  } else {
+    url.searchParams.delete('highlight')
+    url.searchParams.delete('Highlight')
+  }
+  return url
+}
+
 export function updateFilterUrl(url: URL, name: 'operator' | 'road' | 'state', value: string) {
+  url.searchParams.delete('highlight')
+  url.searchParams.delete('Highlight')
   if (value) {
     url.searchParams.set(name, value)
     for (const other of ['operator', 'road', 'state']) {

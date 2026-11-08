@@ -5,7 +5,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { Building2, List, MapPinned, Menu, Route, Search } from 'lucide-react'
 import RoadFilter from '@/components/RoadFilter'
 import OperatorFilter from '@/components/OperatorFilter'
-import { activeMapFilter, readUrlFilters, updateFilterUrl } from '@/lib/filter-url'
+import { activeMapFilter, readHighlightedSite, readUrlFilters, updateFilterUrl, updateHighlightedSiteUrl } from '@/lib/filter-url'
 import type { SiteProperties, MapHandle } from '@/components/Map'
 import type { DailyMetric } from '@/components/DayPicker'
 import type { SearchResult } from '@/components/SearchBox'
@@ -28,6 +28,7 @@ export default function Home() {
   const searchToolRef = useRef<HTMLDetailsElement>(null)
   const roadToolRef = useRef<HTMLDetailsElement>(null)
   const [dailyMetric, setDailyMetric] = useState<DailyMetric>('max')
+  const [highlightSiteId, setHighlightSiteId] = useState('')
 
   const [roadFilter, setRoadFilter] = useState('')
   const [roadToolOpen, setRoadToolOpen] = useState(false)
@@ -41,16 +42,24 @@ export default function Home() {
 
   useEffect(() => {
     const filters = readUrlFilters(new URLSearchParams(window.location.search))
-    const active = activeMapFilter(filters)
+    const highlight = readHighlightedSite(new URLSearchParams(window.location.search))
+    const active = highlight ? { operator: '', road: '', state: '' } : activeMapFilter(filters)
+    setHighlightSiteId(highlight)
     setOperatorFilter(active.operator)
     setRoadFilter(active.road)
     setStateFilter(active.state)
-    if ([filters.operator, filters.road, filters.state].filter(Boolean).length > 1) {
+    if (highlight && [filters.operator, filters.road, filters.state].some(Boolean)) {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('operator')
+      url.searchParams.delete('road')
+      url.searchParams.delete('state')
+      window.history.replaceState(window.history.state, '', url)
+    } else if ([filters.operator, filters.road, filters.state].filter(Boolean).length > 1) {
       window.history.replaceState(window.history.state, '', updateFilterUrl(new URL(window.location.href), active.state ? 'state' : 'operator', active.state || active.operator))
     }
     if (linkCountedRef.current) return
     linkCountedRef.current = true
-    if (!filters.operator && !filters.road && !filters.state) return
+    if (highlight || (!filters.operator && !filters.road && !filters.state)) return
     fetch('/api/filter-visits', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -84,6 +93,7 @@ export default function Home() {
   }, [])
 
   const handleRoadFilter = useCallback((val: string) => {
+    setHighlightSiteId('')
     setRoadFilter(val)
     if (val) setOperatorFilter('')
     if (val) setStateFilter('')
@@ -95,6 +105,7 @@ export default function Home() {
   }, [])
 
   const handleOperatorFilter = useCallback((val: string) => {
+    setHighlightSiteId('')
     setOperatorFilter(val)
     if (val) setRoadFilter('')
     if (val) setStateFilter('')
@@ -106,6 +117,7 @@ export default function Home() {
   }, [])
 
   const handleStateFilter = useCallback((val: string) => {
+    setHighlightSiteId('')
     setStateFilter(val)
     if (val) {
       setOperatorFilter('')
@@ -117,6 +129,21 @@ export default function Home() {
       stateToolRef.current.querySelector('summary')?.focus()
     }
   }, [])
+
+  const handleSiteOpen = useCallback((site: SiteProperties) => {
+    setHighlightSiteId(site.datex_id)
+    setOperatorFilter('')
+    setRoadFilter('')
+    setStateFilter('')
+    window.history.replaceState(window.history.state, '', updateHighlightedSiteUrl(new URL(window.location.href), site.datex_id))
+  }, [])
+
+  const handleSiteClose = useCallback(() => {
+    setSelectedSite(null)
+    if (!highlightSiteId) return
+    setHighlightSiteId('')
+    window.history.replaceState(window.history.state, '', updateHighlightedSiteUrl(new URL(window.location.href), ''))
+  }, [highlightSiteId])
 
   const handleTimeChange = useCallback((t: Date | null) => {
     setSnapshotTime(t)
@@ -142,9 +169,10 @@ export default function Home() {
       fetched_at: null,
     }
     setSelectedSite(site)
+    handleSiteOpen(site)
     mapRef.current?.showPopup(result.longitude, result.latitude, site, 'Auslastung (live)')
     if (searchToolRef.current) searchToolRef.current.open = false
-  }, [])
+  }, [handleSiteOpen])
 
   const METRIC_LABELS = { max: 'Maximum', mean: 'Mittelwert', median: 'Median', min: 'Minimum' }
 
@@ -164,11 +192,11 @@ export default function Home() {
     <main className="relative w-screen h-screen overflow-hidden">
       {/* Map fills everything except the bottom control bar */}
       <div className="absolute inset-0 bottom-14">
-        <Map ref={mapRef} onSiteSelect={setSelectedSite} dataUrl={dataUrl} metricLabel={metricLabel} operatorFilter={operatorFilter} roadFilter={roadFilter} stateFilter={stateFilter} />
+        <Map ref={mapRef} onSiteSelect={setSelectedSite} onSiteClick={handleSiteOpen} dataUrl={dataUrl} metricLabel={metricLabel} highlightSiteId={highlightSiteId} operatorFilter={operatorFilter} roadFilter={roadFilter} stateFilter={stateFilter} />
       </div>
 
       {selectedSite && (
-        <SitePanel site={selectedSite} onClose={() => setSelectedSite(null)} />
+        <SitePanel site={selectedSite} onClose={handleSiteClose} />
       )}
 
       {/* Navigation menu above the map controls */}

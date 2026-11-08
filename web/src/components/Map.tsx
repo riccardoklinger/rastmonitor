@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react'
 import maplibregl from 'maplibre-gl'
 import { Layers, Radar } from 'lucide-react'
-import { applyFilters, zoomToFilteredSites } from '@/lib/map-filters'
+import { applyFilters, zoomToFilteredSites, zoomToHighlightedSite } from '@/lib/map-filters'
 import { buildParkingStar, STAR_MINUTES, STAR_RADIUS_KM, type ParkingIsochrone } from '@/lib/parking-star'
 
 // Colour scale by occupancy_pct
@@ -53,8 +53,10 @@ export interface MapHandle {
 
 interface MapProps {
   onSiteSelect: (site: SiteProperties) => void
+  onSiteClick?: (site: SiteProperties) => void
   dataUrl?: string
   metricLabel?: string
+  highlightSiteId?: string
   operatorFilter?: string
   roadFilter?: string
   stateFilter?: string
@@ -186,7 +188,7 @@ function showSitePopup(map: maplibregl.Map, lngLat: maplibregl.LngLatLike, site:
 }
 
 const Map = forwardRef<MapHandle, MapProps>(function Map(
-  { onSiteSelect, dataUrl = '/api/sites', metricLabel = 'Auslastung', operatorFilter = '', roadFilter = '', stateFilter = '' },
+  { onSiteSelect, onSiteClick, dataUrl = '/api/sites', metricLabel = 'Auslastung', highlightSiteId = '', operatorFilter = '', roadFilter = '', stateFilter = '' },
   ref
 ) {
   const containerRef    = useRef<HTMLDivElement>(null)
@@ -196,6 +198,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
   const roadFilterRef   = useRef(roadFilter)
   const stateFilterRef = useRef(stateFilter)
   const operatorFilterRef = useRef(operatorFilter)
+  const highlightSiteIdRef = useRef(highlightSiteId)
   const filterRevisionRef = useRef(0)
   const pendingFilterZoomRef = useRef(true)
   const basemapMenuRef  = useRef<HTMLDetailsElement>(null)
@@ -385,6 +388,17 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
         void fitPendingFilters()
         return
       }
+      const highlight = highlightSiteIdRef.current.trim()
+      if (highlight) {
+        const selected = zoomToHighlightedSite(map, data, highlight)
+        if (selected) {
+          const [lng, lat] = selected.geometry.coordinates
+          const site = selected.properties as SiteProperties
+          showSitePopup(map, [lng, lat], site, metricLabelRef.current)
+          onSiteSelect(site)
+        }
+        return
+      }
       const singleMatch = zoomToFilteredSites(map, data, roadFilterRef.current, operatorFilterRef.current, stateFilterRef.current)
       if (singleMatch) {
         const [lng, lat] = singleMatch.geometry.coordinates
@@ -438,11 +452,18 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
   }, [dataUrl])
 
   useEffect(() => {
+    highlightSiteIdRef.current = highlightSiteId
+    filterRevisionRef.current++
+    pendingFilterZoomRef.current = Boolean(highlightSiteId.trim() || roadFilterRef.current.trim() || operatorFilterRef.current.trim() || stateFilterRef.current.trim())
+    void fitPendingFilters()
+  }, [highlightSiteId, fitPendingFilters])
+
+  useEffect(() => {
     operatorFilterRef.current = operatorFilter
     roadFilterRef.current = roadFilter
     stateFilterRef.current = stateFilter
     filterRevisionRef.current++
-    pendingFilterZoomRef.current = Boolean(roadFilter.trim() || operatorFilter.trim() || stateFilter.trim())
+    pendingFilterZoomRef.current = Boolean(highlightSiteIdRef.current.trim() || roadFilter.trim() || operatorFilter.trim() || stateFilter.trim())
     if (mapRef.current) applyFilters(mapRef.current, roadFilter, operatorFilter, stateFilter)
     void fitPendingFilters()
   }, [operatorFilter, roadFilter, stateFilter, fitPendingFilters])
@@ -590,6 +611,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
       showSitePopup(map, e.lngLat, props, metricLabelRef.current)
 
       onSiteSelect(props)
+      onSiteClick?.(props)
     })
 
     mapRef.current = map
