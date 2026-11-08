@@ -26,6 +26,35 @@ services:
     command: ["/tiles"]
     # Not exposed to the host — reached only via Next.js proxy at /tiles/*
 
+  ors:
+    image: openrouteservice/openrouteservice:v10.1.0
+    profiles: [routing]
+    restart: unless-stopped
+    mem_limit: ${ORS_MEMORY_LIMIT:-16g}
+    environment:
+      ORS_CONFIG_LOCATION: /home/ors/config/rastmonitor.yml
+      REBUILD_GRAPHS: "false"
+      XMS: ${ORS_XMS:-1g}
+      XMX: ${ORS_XMX:-12g}
+    volumes:
+      - ./routing/ors-config.yml:/home/ors/config/rastmonitor.yml:ro
+      - type: bind
+        source: ${ORS_PBF:-./routing/germany-latest.osm.pbf}
+        target: /home/ors/files/germany.osm.pbf
+        read_only: true
+        bind:
+          create_host_path: false
+      - ors_graphs:/home/ors/graphs
+      - ors_logs:/home/ors/logs
+    ports:
+      - "127.0.0.1:8088:8082"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8082/ors/v2/health"]
+      start_period: 120m
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
   ingestion:
     build: ./ingestion
     restart: unless-stopped
@@ -76,6 +105,7 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       MARTIN_URL: http://martin:3000
+      ORS_URL: ${ORS_URL:-http://ors:8082/ors}
       EXPORT_DIR: /exports
       DOWNLOAD_USERNAME: ${DOWNLOAD_USERNAME:-}
       DOWNLOAD_PASSWORD: ${DOWNLOAD_PASSWORD:-}
@@ -88,3 +118,5 @@ services:
 volumes:
   db_data:
   exports:
+  ors_graphs:
+  ors_logs:

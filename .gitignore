@@ -25,3 +25,6 @@ out/
 
 # Local analysis reports and source data
 /report/
+/routing/*.pbf
+/routing/*.tar.gz
+/routing/graphs/

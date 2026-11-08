@@ -1,0 +1,405 @@
+{
+  "capturedAt": "2026-11-07T18:35:23.914Z",
+  "base": "http://127.0.0.1:3100",
+  "container": "rastmonitor-ors-lab-ors-serve-1",
+  "mode": "development app, unthrottled, uncached, sequential stage order; one sample per case per stage",
+  "cpuLimit": 4,
+  "memoryLimitBytes": 6442450944,
+  "stages": [
+    {
+      "concurrency": 1,
+      "before": {
+        "memoryBytes": 6437203968,
+        "lifetimePeakBytes": 6442450944,
+        "cpuUsec": 75782495
+      },
+      "requests": [
+        {
+          "city": "Berlin",
+          "origin": [
+            13.405,
+            52.52
+          ],
+          "minutes": 30,
+          "status": 200,
+          "ms": 1840,
+          "bytes": 14189,
+          "features": 1,
+          "retryAfter": null
+        },
+        {
+          "city": "Berlin",
+          "origin": [
+            13.405,
+            52.52
+          ],
+          "minutes": 60,
+          "status": 200,
+          "ms": 4087,
+          "bytes": 88947,
+          "features": 1,
+          "retryAfter": null
+        },
+        {
+          "city": "Hamburg",
+          "origin": [
+            9.9937,
+            53.5511
+          ],
+          "minutes": 30,
+          "status": 200,
+          "ms": 1005,
+          "bytes": 24094,
+          "features": 1,
+          "retryAfter": null
+        },
+        {
+          "city": "Hamburg",
+          "origin": [
+            9.9937,
+            53.5511
+          ],
+          "minutes": 60,
+          "status": 200,
+          "ms": 1984,
+          "bytes": 103358,
+          "features": 1,
+          "retryAfter": null
+        },
+        {
+          "city": "Munich",
+          "origin": [
+            11.582,
+            48.1351
+          ],
+          "minutes": 30,
+          "status": 200,
+          "ms": 1043,
+          "bytes": 33453,
+          "features": 1,
+          "retryAfter": null
+        },
+        {
+          "city": "Munich",
+          "origin": [
+            11.582,
+            48.1351
+          ],
+          "minutes": 60,
+          "status": 200,
+          "ms": 2875,
+          "bytes": 101607,
+          "features": 1,
+          "retryAfter": null
+        }
+      ],
+      "parking": [
+        {
+          "status": 200,
+          "ms": 654,
+          "features": 1854
+        },
+        {
+          "status": 200,
+          "ms": 588,
+          "features": 1854
+        },
+        {
+          "status": 200,
+          "ms": 764,
+          "features": 1854
+        },
+        {
+          "status": 200,
+          "ms": 552,
+          "features": 1854
+        },
+        {
+          "status": 200,
+          "ms": 559,
+          "features": 1854
+        },
+        {
+          "status": 200,
+          "ms": 643,
+          "features": 1854
+        }
+      ],
+      "wallMs": 12834,
+      "after": {
+        "memoryBytes": 6439526400,
+        "lifetimePeakBytes": 6442450944,
+        "cpuUsec": 89547419
+      },
+      "averageOrsCores": 1.0725357643758766
+    },
+    {
+      "concurrency": 2,
+      "before": {
+        "memoryBytes": 6439895040,
+        "lifetimePeakBytes": 6442450944,
+        "cpuUsec": 89582554
+      },
+      "requests": [
+        {
+          "city": "Berlin",
+          "origin": [
+            13.405,
+            52.52
+          ],
+          "minutes": 30,
+          "status": 200,
+          "ms": 1757,
+          "bytes": 14189,
+          "features": 1,
+          "retryAfter": null
+        },
+        {
+          "city": "Berlin",
+          "origin": [
+            13.405,
+            52.52
+          ],
+          "minutes": 60,
+          "status": 200,
+          "ms": 4440,
+          "bytes": 88947,
+          "features": 1,
+          "retryAfter": null
+        },
+        {
+          "city": "Hamburg",
+          "origin": [
+            9.9937,
+            53.5511
+          ],
+          "minutes": 30,
+          "status": 200,
+          "ms": 1207,
+          "bytes": 24094,
+          "features": 1,
+          "retryAfter": null
+        },
+        {
+          "city": "Hamburg",
+          "origin": [
+            9.9937,
+            53.5511
+          ],
+          "minutes": 60,
+          "status": 200,
+          "ms": 2695,
+          "bytes": 103358,
+          "features": 1,
+          "retryAfter": null
+        },
+        {
+          "city": "Munich",
+          "origin": [
+            11.582,
+            48.1351
+          ],
+          "minutes": 30,
+          "status": 200,
+          "ms": 1321,
+          "bytes": 33453,
+          "features": 1,
+          "retryAfter": null
+        },
+        {
+          "city": "Munich",
+          "origin": [
+            11.582,
+            48.1351
+          ],
+          "minutes": 60,
+          "status": 200,
+          "ms": 3062,
+          "bytes": 101607,
+          "features": 1,
+          "retryAfter": null
+        }
+      ],
+      "parking": [
+        {
+          "status": 200,
+          "ms": 727,
+          "features": 1854
+        },
+        {
+          "status": 200,
+          "ms": 670,
+          "features": 1854
+        },
+        {
+          "status": 200,
+          "ms": 748,
+          "features": 1854
+        }
+      ],
+      "wallMs": 10202,
+      "after": {
+        "memoryBytes": 6440374272,
+        "lifetimePeakBytes": 6442450944,
+        "cpuUsec": 106627530
+      },
+      "averageOrsCores": 1.6707484806900608
+    },
+    {
+      "concurrency": 4,
+      "before": {
+        "memoryBytes": 6440886272,
+        "lifetimePeakBytes": 6442450944,
+        "cpuUsec": 106669999
+      },
+      "requests": [
+        {
+          "city": "Berlin",
+          "origin": [
+            13.405,
+            52.52
+          ],
+          "minutes": 30,
+          "status": 200,
+          "ms": 2244,
+          "bytes": 14189,
+          "features": 1,
+          "retryAfter": null
+        },
+        {
+          "city": "Berlin",
+          "origin": [
+            13.405,
+            52.52
+          ],
+          "minutes": 60,
+          "status": 200,
+          "ms": 5023,
+          "bytes": 88947,
+          "features": 1,
+          "retryAfter": null
+        },
+        {
+          "city": "Hamburg",
+          "origin": [
+            9.9937,
+            53.5511
+          ],
+          "minutes": 30,
+          "status": 200,
+          "ms": 1758,
+          "bytes": 24094,
+          "features": 1,
+          "retryAfter": null
+        },
+        {
+          "city": "Hamburg",
+          "origin": [
+            9.9937,
+            53.5511
+          ],
+          "minutes": 60,
+          "status": 200,
+          "ms": 3567,
+          "bytes": 103358,
+          "features": 1,
+          "retryAfter": null
+        },
+        {
+          "city": "Munich",
+          "origin": [
+            11.582,
+            48.1351
+          ],
+          "minutes": 30,
+          "status": 200,
+          "ms": 1040,
+          "bytes": 33453,
+          "features": 1,
+          "retryAfter": null
+        },
+        {
+          "city": "Munich",
+          "origin": [
+            11.582,
+            48.1351
+          ],
+          "minutes": 60,
+          "status": 200,
+          "ms": 2947,
+          "bytes": 101607,
+          "features": 1,
+          "retryAfter": null
+        }
+      ],
+      "parking": [
+        {
+          "status": 200,
+          "ms": 826,
+          "features": 1854
+        },
+        {
+          "status": 200,
+          "ms": 649,
+          "features": 1854
+        }
+      ],
+      "wallMs": 7971,
+      "after": {
+        "memoryBytes": 6441967616,
+        "lifetimePeakBytes": 6442450944,
+        "cpuUsec": 123955881
+      },
+      "averageOrsCores": 2.168596411993476
+    }
+  ],
+  "finalState": {
+    "Status": "running",
+    "Running": true,
+    "Paused": false,
+    "Restarting": false,
+    "OOMKilled": false,
+    "Dead": false,
+    "Pid": 726,
+    "ExitCode": 0,
+    "Error": "",
+    "StartedAt": "2026-11-07T18:23:16.531929843Z",
+    "FinishedAt": "0001-01-01T00:00:00Z",
+    "Health": {
+      "Status": "healthy",
+      "FailingStreak": 0,
+      "Log": [
+        {
+          "Start": "2026-11-07T18:33:28.665782668Z",
+          "End": "2026-11-07T18:33:28.740481834Z",
+          "ExitCode": 0,
+          "Output": ""
+        },
+        {
+          "Start": "2026-11-07T18:33:58.741587793Z",
+          "End": "2026-11-07T18:33:58.806931126Z",
+          "ExitCode": 0,
+          "Output": ""
+        },
+        {
+          "Start": "2026-11-07T18:34:28.811189334Z",
+          "End": "2026-11-07T18:34:28.878712043Z",
+          "ExitCode": 0,
+          "Output": ""
+        },
+        {
+          "Start": "2026-11-07T18:34:58.881065459Z",
+          "End": "2026-11-07T18:34:58.937995043Z",
+          "ExitCode": 0,
+          "Output": ""
+        },
+        {
+          "Start": "2026-11-07T18:35:28.941147834Z",
+          "End": "2026-11-07T18:35:29.019940084Z",
+          "ExitCode": 0,
+          "Output": ""
+        }
+      ]
+    }
+  }
+}

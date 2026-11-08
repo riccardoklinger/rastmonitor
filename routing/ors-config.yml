@@ -1,0 +1,50 @@
+server:
+  port: 8082
+  servlet:
+    context-path: /ors
+ors:
+  endpoints:
+    isochrones:
+      enabled: true
+      maximum_locations: 1
+      maximum_intervals: 1
+      maximum_range_time_default: 3600
+      maximum_range_time:
+        - profiles: driving-hgv
+          value: 3600
+      fastisochrones:
+        maximum_range_time_default: 3600
+        maximum_range_time:
+          - profiles: driving-hgv
+            value: 3600
+  engine:
+    init_threads: 1
+    profile_default:
+      enabled: false
+      graph_path: /home/ors/graphs
+      build:
+        source_file: /home/ors/files/germany.osm.pbf
+        elevation: false
+    profiles:
+      driving-car:
+        enabled: false
+      driving-hgv:
+        enabled: true
+        encoder_name: driving-hgv
+        build:
+          elevation: false
+          preparation:
+            methods:
+              ch:
+                enabled: false
+              core:
+                enabled: false
+              lm:
+                enabled: false
+              fastisochrones:
+                enabled: true
+                threads: 1
+                weightings: fastest
+          ext_storages:
+            HeavyVehicle:
+              restrictions: true

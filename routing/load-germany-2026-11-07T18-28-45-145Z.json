@@ -1,0 +1,170 @@
+{
+  "capturedAt": "2026-11-07T18:28:45.145Z",
+  "app": "http://127.0.0.1:3100",
+  "ors": "http://127.0.0.1:18089/ors",
+  "limits": {
+    "cpus": 4,
+    "memoryBytes": 6442450944,
+    "heap": "XMX=5g"
+  },
+  "resourceSamples": [],
+  "notes": [
+    "Local Next.js development server, not a production-capacity benchmark.",
+    "App traffic retains the five-second limiter. Direct ORS concurrency represents independent visitors without changing proxy trust.",
+    "Routing test calls through the app count in its normal usage statistics."
+  ],
+  "appBurst": [
+    {
+      "status": 200,
+      "milliseconds": 1597,
+      "features": 1,
+      "retryAfter": null
+    },
+    {
+      "status": 429,
+      "milliseconds": 47,
+      "retryAfter": "5",
+      "error": "Bitte 5 Sekunden bis zur nächsten Berechnung warten"
+    },
+    {
+      "status": 429,
+      "milliseconds": 47,
+      "retryAfter": "5",
+      "error": "Bitte 5 Sekunden bis zur nächsten Berechnung warten"
+    },
+    {
+      "status": 429,
+      "milliseconds": 47,
+      "retryAfter": "5",
+      "error": "Bitte 5 Sekunden bis zur nächsten Berechnung warten"
+    }
+  ],
+  "appPaced": [
+    {
+      "city": "Berlin",
+      "minutes": 30,
+      "status": 200,
+      "milliseconds": 1348,
+      "features": 1,
+      "retryAfter": null
+    },
+    {
+      "city": "Hamburg",
+      "minutes": 30,
+      "status": 200,
+      "milliseconds": 1301,
+      "features": 1,
+      "retryAfter": null
+    },
+    {
+      "city": "Munich",
+      "minutes": 30,
+      "status": 200,
+      "milliseconds": 1154,
+      "features": 1,
+      "retryAfter": null
+    },
+    {
+      "city": "Berlin",
+      "minutes": 60,
+      "status": 200,
+      "milliseconds": 4593,
+      "features": 1,
+      "retryAfter": null
+    },
+    {
+      "city": "Hamburg",
+      "minutes": 60,
+      "status": 200,
+      "milliseconds": 2574,
+      "features": 1,
+      "retryAfter": null
+    },
+    {
+      "city": "Munich",
+      "minutes": 60,
+      "status": 200,
+      "milliseconds": 3072,
+      "features": 1,
+      "retryAfter": null
+    }
+  ],
+  "orsConcurrency": [
+    {
+      "concurrency": 2,
+      "minutes": 30,
+      "totalMilliseconds": 1115,
+      "results": [
+        {
+          "city": "Berlin",
+          "minutes": 30,
+          "status": 200,
+          "milliseconds": 1114,
+          "features": 1,
+          "retryAfter": null
+        },
+        {
+          "city": "Munich",
+          "minutes": 30,
+          "status": 200,
+          "milliseconds": 938,
+          "features": 1,
+          "retryAfter": null
+        }
+      ]
+    },
+    {
+      "concurrency": 2,
+      "minutes": 60,
+      "totalMilliseconds": 2996,
+      "results": [
+        {
+          "city": "Berlin",
+          "minutes": 60,
+          "status": 200,
+          "milliseconds": 2996,
+          "features": 1,
+          "retryAfter": null
+        },
+        {
+          "city": "Munich",
+          "minutes": 60,
+          "status": 200,
+          "milliseconds": 2222,
+          "features": 1,
+          "retryAfter": null
+        }
+      ]
+    }
+  ],
+  "parkingWhileRouting": {
+    "count": 20,
+    "statuses": {
+      "200": 20
+    },
+    "p50Ms": 370,
+    "p95Ms": 541,
+    "maxMs": 541,
+    "minimumFeatures": 1854
+  },
+  "appPacedSummary": {
+    "count": 6,
+    "statuses": {
+      "200": 6
+    },
+    "p50Ms": 1348,
+    "p95Ms": 4593,
+    "maxMs": 4593,
+    "minimumFeatures": 1
+  },
+  "finalState": {
+    "status": "running",
+    "oomKilled": false,
+    "restarts": 0
+  },
+  "observedResources": {
+    "samples": 0,
+    "maxCpuPercent": null,
+    "maxMemoryPercent": null
+  }
+}

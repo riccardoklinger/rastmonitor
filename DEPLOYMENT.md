@@ -1,5 +1,10 @@
 # rastmonitor — Deployment Guide
 
+For the split app-server / routing-server setup, follow
+[Private ORS deployment over WireGuard](routing/DEPLOYMENT.md) in addition to
+this app deployment guide. It covers graph transfer, serving-only containers,
+private networking, queue timeouts, and straight-line outage fallback.
+
 ## Prerequisites on the server
 
 - Ubuntu 22.04 LTS (or similar)
@@ -312,6 +317,7 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
         proxy_cache_bypass $http_upgrade;
     }
 

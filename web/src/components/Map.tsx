@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, useImperativeHandle, forwardR
 import maplibregl from 'maplibre-gl'
 import { Layers, Radar } from 'lucide-react'
 import { applyFilters, zoomToFilteredSites } from '@/lib/map-filters'
-import { buildParkingStar, STAR_RADIUS_KM } from '@/lib/parking-star'
+import { buildParkingStar, STAR_MINUTES, STAR_RADIUS_KM, type ParkingIsochrone } from '@/lib/parking-star'
 
 // Colour scale by occupancy_pct
 // coalesce maps null/missing → -1, which falls into the grey bucket below 0.
@@ -203,8 +203,16 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
   const [loading, setLoading] = useState(true)
   const [basemapId, setBasemapId] = useState(DEFAULT_BASEMAP.id)
   const [starActive, setStarActive] = useState(false)
+  const [starMinutes, setStarMinutes] = useState(STAR_MINUTES)
+  const [starDraftMinutes, setStarDraftMinutes] = useState(STAR_MINUTES)
   const [starRadius, setStarRadius] = useState(STAR_RADIUS_KM)
+  const [starDraftRadius, setStarDraftRadius] = useState(STAR_RADIUS_KM)
+  const [routingAvailable, setRoutingAvailable] = useState<boolean | null>(null)
+  const [starAdjusting, setStarAdjusting] = useState(false)
   const [starOrigin, setStarOrigin] = useState<[number, number] | null>(null)
+  const [isochrone, setIsochrone] = useState<{ origin: [number, number]; minutes: number; data: ParkingIsochrone } | null>(null)
+  const [routingLoading, setRoutingLoading] = useState(false)
+  const [routingError, setRoutingError] = useState('')
   const [liveSites, setLiveSites] = useState<GeoJSON.GeoJSON | null>(null)
   const [starLoading, setStarLoading] = useState(false)
   const [starError, setStarError] = useState('')
@@ -212,8 +220,84 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
   const starActiveRef = useRef(false)
   const starOriginRef = useRef<[number, number] | null>(null)
   const framedOriginRef = useRef<[number, number] | null>(null)
-  const framedRadiusRef = useRef(STAR_RADIUS_KM)
+  const framedMinutesRef = useRef(STAR_MINUTES)
+  const framedModeRef = useRef<boolean | null>(null)
   const starDataRef = useRef<GeoJSON.FeatureCollection<GeoJSON.LineString>>({ type: 'FeatureCollection', features: [] })
+  const isochroneDataRef = useRef<ParkingIsochrone>({ type: 'FeatureCollection', features: [] })
+  const distanceMode = routingAvailable === false
+  const starValue = distanceMode ? starRadius : starMinutes
+  const starDraftValue = distanceMode ? starDraftRadius : starDraftMinutes
+  const starUnit = distanceMode ? 'km' : 'min'
+  const setDraftValue = distanceMode ? setStarDraftRadius : setStarDraftMinutes
+  const commitStarValue = (value: number) => {
+    if (distanceMode) setStarRadius(value)
+    else setStarMinutes(value)
+    setStarAdjusting(false)
+  }
+
+  useEffect(() => {
+    if (starAdjusting) {
+      setRoutingLoading(false)
+      return
+    }
+    setIsochrone(null)
+    setRoutingError('')
+    if (!starActive || !starOrigin || routingAvailable !== true) {
+      setRoutingLoading(false)
+      return
+    }
+    const origin = starOrigin
+    const controller = new AbortController()
+    setRoutingLoading(true)
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch('/api/isochrone', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          cache: 'no-store',
+          signal: controller.signal,
+          body: JSON.stringify({ origin, minutes: starMinutes }),
+        })
+        const data = await response.json()
+        if (controller.signal.aborted) return
+        if (!response.ok) {
+          if (data.code === 'ROUTING_BUSY' || response.status === 400) {
+            setRoutingError(data.error || 'Lkw-Routing nicht verfügbar')
+          } else setRoutingAvailable(false)
+          return
+        }
+        setIsochrone({ origin, minutes: starMinutes, data })
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setRoutingAvailable(false)
+          setRoutingError(error instanceof Error ? error.message : 'Lkw-Routing nicht verfügbar')
+        }
+      } finally {
+        if (!controller.signal.aborted) setRoutingLoading(false)
+      }
+    }, 300)
+    return () => { clearTimeout(timer); controller.abort() }
+  }, [starActive, starOrigin, starMinutes, starAdjusting, routingAvailable])
+
+  useEffect(() => {
+    if (!starActive) return
+    const controller = new AbortController()
+    const check = async () => {
+      try {
+        const response = await fetch('/api/isochrone', {
+          cache: 'no-store',
+          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(4_000)]),
+        })
+        const data = await response.json()
+        if (!controller.signal.aborted) setRoutingAvailable(response.ok && data.available === true)
+      } catch {
+        if (!controller.signal.aborted) setRoutingAvailable(false)
+      }
+    }
+    void check()
+    const interval = setInterval(() => { void check() }, 30_000)
+    return () => { controller.abort(); clearInterval(interval) }
+  }, [starActive])
 
   useEffect(() => {
     if (!starActive) return
@@ -240,8 +324,11 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
   }, [starActive])
 
   useEffect(() => {
+    const area = starActive && routingAvailable === true && isochrone?.origin === starOrigin && isochrone?.minutes === starMinutes
+      ? isochrone.data : { type: 'FeatureCollection' as const, features: [] }
+    isochroneDataRef.current = area
     const data = starActive && starOrigin && liveSites
-      ? buildParkingStar(starOrigin, liveSites, starRadius)
+      ? buildParkingStar(starOrigin, liveSites, distanceMode ? starRadius : area)
       : { type: 'FeatureCollection' as const, features: [] }
     starDataRef.current = data
     starOriginRef.current = starActive ? starOrigin : null
@@ -249,26 +336,39 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
     const map = mapRef.current
     const source = map?.getSource('parking-star') as maplibregl.GeoJSONSource | undefined
     source?.setData(data)
+    const areaSource = map?.getSource('parking-isochrone') as maplibregl.GeoJSONSource | undefined
+    areaSource?.setData(area)
     const originSource = map?.getSource('parking-star-origin') as maplibregl.GeoJSONSource | undefined
     originSource?.setData({
       type: 'FeatureCollection',
       features: starActive && starOrigin ? [{ type: 'Feature', geometry: { type: 'Point', coordinates: starOrigin }, properties: {} }] : [],
     })
-  }, [starActive, starOrigin, liveSites, starRadius])
+  }, [starActive, starOrigin, liveSites, starMinutes, isochrone, routingAvailable, distanceMode, starRadius])
 
   useEffect(() => {
-    if (!starActive || !starOrigin || !liveSites || (framedOriginRef.current === starOrigin && framedRadiusRef.current === starRadius)) return
+    if (!starActive || !starOrigin || !liveSites || routingAvailable === null ||
+      (!distanceMode && (isochrone?.origin !== starOrigin || isochrone?.minutes !== starMinutes)) ||
+      (framedOriginRef.current === starOrigin && framedMinutesRef.current === starValue && framedModeRef.current === distanceMode)) return
     const map = mapRef.current
     if (!map) return
     framedOriginRef.current = starOrigin
-    framedRadiusRef.current = starRadius
+    framedMinutesRef.current = starValue
+    framedModeRef.current = distanceMode
     const bounds = new maplibregl.LngLatBounds(starOrigin, starOrigin)
-    for (const feature of starDataRef.current.features) {
-      const [lng, lat] = feature.geometry.coordinates[1]
-      bounds.extend([lng, lat])
+    for (const feature of distanceMode ? [] : isochrone!.data.features) {
+      const polygons = feature.geometry.type === 'Polygon' ? [feature.geometry.coordinates] : feature.geometry.coordinates
+      for (const polygon of polygons) {
+        for (const [lng, lat] of polygon[0]) bounds.extend([lng, lat])
+      }
+    }
+    if (distanceMode) {
+      for (const feature of starDataRef.current.features) {
+        const [lng, lat] = feature.geometry.coordinates[1]
+        bounds.extend([lng, lat])
+      }
     }
     map.fitBounds(bounds, { padding: { top: 60, right: 60, bottom: 60, left: 30 }, maxZoom: 8 })
-  }, [starActive, starOrigin, liveSites, starRadius])
+  }, [starActive, starOrigin, liveSites, starMinutes, isochrone, routingAvailable, distanceMode, starValue])
 
   const fitPendingFilters = useCallback(async () => {
     const map = mapRef.current
@@ -417,6 +517,15 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
 
       applyFilters(map, roadFilterRef.current, operatorFilterRef.current, stateFilterRef.current)
 
+      map.addSource('parking-isochrone', { type: 'geojson', data: isochroneDataRef.current, attribution: '© openrouteservice by HeiGIT | © OpenStreetMap contributors' })
+      map.addLayer({
+        id: 'parking-isochrone-fill', type: 'fill', source: 'parking-isochrone',
+        paint: { 'fill-color': '#0891b2', 'fill-opacity': 0.06 },
+      }, 'parking-circles-dim')
+      map.addLayer({
+        id: 'parking-isochrone-outline', type: 'line', source: 'parking-isochrone',
+        paint: { 'line-color': '#0891b2', 'line-opacity': 0.7, 'line-width': 1.5, 'line-dasharray': [3, 2] },
+      }, 'parking-circles-dim')
       map.addSource('parking-star', { type: 'geojson', data: starDataRef.current, lineMetrics: true })
       for (const color of ['#9ca3af', '#22c55e', '#eab308', '#f97316', '#ef4444', '#7f1d1d']) {
         map.addLayer({
@@ -505,7 +614,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
       <button
         type="button"
         aria-label="Sternanalyse"
-        title="Sternanalyse: Kartenpunkt oder eigenen Standort wählen"
+        title={distanceMode ? 'Luftlinienanalyse: Kartenpunkt oder eigenen Standort wählen' : 'Lkw-Fahrzeitanalyse: Kartenpunkt oder eigenen Standort wählen'}
         aria-pressed={starActive}
         data-active={starActive}
         className="map-toolbar-button absolute top-[283px] right-[10px] z-20"
@@ -521,30 +630,53 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
         <Radar size={18} aria-hidden="true" />
       </button>
       {starActive && (
-        <div className="absolute top-[283px] right-[49px] z-20 flex w-16 flex-col items-center gap-1 rounded bg-white/95 px-2 py-2 text-xs text-gray-700 shadow ring-1 ring-black/10">
-          <output htmlFor="star-radius" className="whitespace-nowrap font-semibold tabular-nums">{starRadius} km</output>
-          <span aria-hidden="true">200</span>
+        <div className="absolute top-[283px] right-[49px] z-20 flex w-20 flex-col items-center gap-1 rounded bg-white/95 px-2 py-2 text-xs text-gray-700 shadow ring-1 ring-black/10">
+          <output htmlFor="star-minutes" className="whitespace-nowrap font-semibold tabular-nums">{starDraftValue} {starUnit}</output>
+          <span aria-hidden="true">{distanceMode ? 200 : 60}</span>
           <input
-            id="star-radius"
+            id="star-minutes"
             type="range"
             min={10}
-            max={200}
+            max={distanceMode ? 200 : 60}
             step={1}
-            value={starRadius}
-            aria-label="Analyseradius"
-            aria-valuetext={`${starRadius} Kilometer`}
+            value={starDraftValue}
+            aria-label={distanceMode ? 'Luftlinienradius' : 'Lkw-Fahrzeit'}
+            aria-valuetext={`${starDraftValue} ${distanceMode ? 'Kilometer' : 'Minuten'}`}
             aria-orientation="vertical"
             className="w-5 cursor-pointer accent-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
             style={{ writingMode: 'vertical-lr', direction: 'rtl', height: 'min(144px, calc(100dvh - 420px))', minHeight: 48 }}
-            onChange={event => setStarRadius(Number(event.target.value))}
+            onChange={event => setDraftValue(Number(event.target.value))}
+            onPointerDown={event => {
+              event.currentTarget.setPointerCapture(event.pointerId)
+              setStarAdjusting(true)
+            }}
+            onPointerUp={event => {
+              commitStarValue(Number(event.currentTarget.value))
+            }}
+            onPointerCancel={() => {
+              setDraftValue(starValue)
+              setStarAdjusting(false)
+            }}
+            onKeyDown={event => {
+              if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp', 'PageDown'].includes(event.key)) setStarAdjusting(true)
+            }}
+            onKeyUp={event => {
+              if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp', 'PageDown'].includes(event.key)) {
+                commitStarValue(Number(event.currentTarget.value))
+              }
+            }}
+            onBlur={event => {
+              commitStarValue(Number(event.currentTarget.value))
+            }}
           />
           <span aria-hidden="true">10</span>
         </div>
       )}
       {starActive && (
         <div role="status" aria-live="polite" className="pointer-events-none absolute bottom-8 left-3 right-14 z-10 w-fit max-w-[calc(100%-4.25rem)] rounded bg-white/95 px-3 py-2 text-xs text-gray-700 shadow">
-          <strong>{starRadius} km · Live</strong>
-          <span className="ml-2">{starLoading ? 'Lade Live-Daten…' : starError || (!starOrigin ? 'Standort ausstehend' : starCount ? `${starCount} Rastplätze` : 'Keine Rastplätze im Umkreis')}</span>
+          <strong>{starValue} {starUnit} · {distanceMode ? 'Luftlinie' : 'Lkw'} · Live</strong>
+          <span className="ml-2">{routingAvailable === null ? 'Prüfe Routing…' : routingLoading ? 'Berechne Fahrzeit…' : starLoading ? 'Lade Live-Daten…' : routingError || starError || (!starOrigin ? 'Standort ausstehend' : starCount ? `${starCount} Rastplätze` : distanceMode ? 'Keine Rastplätze im Radius' : 'Keine erreichbaren Rastplätze')}</span>
+          {distanceMode && <span className="mt-1 block text-amber-800">Isochronen derzeit nicht verfügbar. Luftlinienentfernung, keine Fahrzeit.</span>}
         </div>
       )}
       {loading && (

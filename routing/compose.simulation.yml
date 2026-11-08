@@ -1,0 +1,65 @@
+name: rastmonitor-ors-lab
+
+x-ors-common: &ors-common
+  image: openrouteservice/openrouteservice:v10.1.0
+  init: true
+  restart: "no"
+  cpus: ${ORS_LAB_CPUS:-4}
+  environment: &ors-environment
+    ORS_CONFIG_LOCATION: /home/ors/config/rastmonitor.yml
+    REBUILD_GRAPHS: "false"
+    XMS: 1g
+  volumes: &ors-volumes
+    - ./ors-config.yml:/home/ors/config/rastmonitor.yml:ro
+    - graphs:/home/ors/graphs
+    - logs:/home/ors/logs
+
+services:
+  ors-build:
+    <<: *ors-common
+    profiles: [build]
+    cpus: ${ORS_LAB_BUILD_CPUS:-6}
+    mem_limit: ${ORS_LAB_BUILD_MEMORY:-12g}
+    memswap_limit: ${ORS_LAB_BUILD_MEMORY:-12g}
+    environment:
+      <<: *ors-environment
+      XMX: ${ORS_LAB_BUILD_HEAP:-10g}
+      ors.engine.preparation_mode: "true"
+      ors.engine.profiles.driving-hgv.build.preparation.methods.fastisochrones.threads: "${ORS_LAB_BUILD_WORKERS:-6}"
+    volumes:
+      - ./ors-config.yml:/home/ors/config/rastmonitor.yml:ro
+      - graphs:/home/ors/graphs
+      - logs:/home/ors/logs
+      - type: bind
+        source: ${ORS_LAB_PBF:-./germany-latest.osm.pbf}
+        target: /home/ors/files/germany.osm.pbf
+        read_only: true
+        bind:
+          create_host_path: false
+
+  ors-serve:
+    <<: *ors-common
+    mem_limit: ${ORS_LAB_MEMORY:-6g}
+    memswap_limit: ${ORS_LAB_MEMORY:-6g}
+    entrypoint: ["/bin/sh", "/opt/rastmonitor/serve-prebuilt.sh"]
+    environment:
+      <<: *ors-environment
+      XMX: ${ORS_LAB_HEAP:-5g}
+      ors.engine.preparation_mode: "false"
+    volumes:
+      - ./ors-config.yml:/home/ors/config/rastmonitor.yml:ro
+      - ./serve-prebuilt.sh:/opt/rastmonitor/serve-prebuilt.sh:ro
+      - graphs:/home/ors/graphs
+      - logs:/home/ors/logs
+    ports:
+      - "127.0.0.1:${ORS_LAB_PORT:-18089}:8082"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8082/ors/v2/health"]
+      start_period: 5m
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  graphs:
+  logs:

@@ -51,6 +51,21 @@ Bericht: `docker compose exec ingestion python3 /app/report_visits.py --days 7`.
 Vor dem Einsatz auf einer bestehenden Datenbank die Migration aus der
 [Deployment-Anleitung](./DEPLOYMENT.md#filter-link-statistics) ausführen.
 
+### Lkw-Fahrzeitanalyse
+
+Das Sternwerkzeug verwendet auf diesem Branch lokale HGV-Isochronen statt
+Luftlinienradien. Die Fahrzeit ist von 10 bis 60 Minuten einstellbar.
+Ist das Routing nicht verfügbar, bleibt das Werkzeug mit einem klar markierten
+Luftlinienradius nutzbar (100 km als Standard, 10 bis 200 km einstellbar).
+Sobald das Routing wieder erreichbar ist, werden erneut Isochronen verwendet.
+Openrouteservice verwendet ausschließlich einen Deutschland-PBF und eigene
+Routing-Volumes; die bestehenden Parkplatztabellen bleiben unverändert. Isochronen
+werden nicht gespeichert oder gecacht. Berechnungen sind ohne Login nutzbar,
+aber auf eine Anfrage pro fünf Sekunden je IP begrenzt. Ein separater täglicher
+Nutzungszähler speichert nur Summen, keine IP-Adressen oder Koordinaten.
+Einrichtung und Grenzen der Fahrzeitberechnung:
+[Lokales HGV-Routing](routing/README.md).
+
 ## Datenbasis
 
 Die aufklappbaren **Standortdetails** in der Seitenleiste zeigen auch

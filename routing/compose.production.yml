@@ -1,0 +1,37 @@
+name: rastmonitor-routing
+
+services:
+  ors:
+    image: ${ORS_IMAGE:-openrouteservice/openrouteservice:v10.1.0}
+    init: true
+    restart: unless-stopped
+    cpus: ${ORS_CPUS:-4}
+    mem_limit: ${ORS_MEMORY_LIMIT:-6g}
+    memswap_limit: ${ORS_MEMORY_LIMIT:-6g}
+    entrypoint: ["/bin/sh", "/opt/rastmonitor/serve-prebuilt.sh"]
+    environment:
+      ORS_CONFIG_LOCATION: /home/ors/config/rastmonitor.yml
+      REBUILD_GRAPHS: "false"
+      XMS: ${ORS_XMS:-1g}
+      XMX: ${ORS_XMX:-5g}
+      ors.engine.preparation_mode: "false"
+    volumes:
+      - ./ors-config.yml:/home/ors/config/rastmonitor.yml:ro
+      - ./serve-prebuilt.sh:/opt/rastmonitor/serve-prebuilt.sh:ro
+      - type: bind
+        source: ./graphs
+        target: /home/ors/graphs
+        bind:
+          create_host_path: false
+      - logs:/home/ors/logs
+    ports:
+      - "${ORS_BIND_IP:?Set ORS_BIND_IP to the ORS server WireGuard IPv4 address}:8088:8082"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8082/ors/v2/health"]
+      start_period: 5m
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  logs:
