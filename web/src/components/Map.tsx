@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react'
 import { createRoot } from 'react-dom/client'
 import maplibregl from 'maplibre-gl'
-import { Layers, Navigation, Radar } from 'lucide-react'
+import { ChevronDown, ChevronUp, Layers, Navigation, Radar } from 'lucide-react'
 import { applyFilters, zoomToFilteredSites, zoomToHighlightedSite } from '@/lib/map-filters'
 import { buildDirectionsUrl, type MapProvider } from '@/lib/map-directions'
 import { buildParkingStar, summarizeParkingAvailability, STAR_MINUTES, STAR_RADIUS_KM, type ParkingIsochrone } from '@/lib/parking-star'
@@ -278,6 +278,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
   const [loading, setLoading] = useState(true)
   const [basemapId, setBasemapId] = useState(DEFAULT_BASEMAP.id)
   const [starActive, setStarActive] = useState(false)
+  const [resultsCollapsed, setResultsCollapsed] = useState(false)
   const [starMinutes, setStarMinutes] = useState(STAR_MINUTES)
   const [starDraftMinutes, setStarDraftMinutes] = useState(STAR_MINUTES)
   const [starRadius, setStarRadius] = useState(STAR_RADIUS_KM)
@@ -811,7 +812,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
           aria-label="Rastplätze im Einzugsgebiet"
           className="absolute bottom-2 left-3 right-3 z-20 flex max-h-[34dvh] flex-col overflow-hidden rounded border border-gray-200 bg-white/95 text-gray-800 shadow-lg"
         >
-          <header className="shrink-0 border-b border-gray-200 px-3 py-2">
+          <header className="relative min-h-12 shrink-0 border-b border-gray-200 py-2 pl-3 pr-14">
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
               <strong className="text-xs font-semibold">
                 {availability.unknown === starResults.length ? 'Freie Plätze: keine Daten' : `${availability.estimated ? '~' : ''}${availability.total} freie Plätze`}
@@ -824,8 +825,19 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
             {availability.unknown > 0 && <p className="mt-1 text-xs text-gray-600">{availability.unknown} {availability.unknown === 1 ? 'Rastplatz' : 'Rastplätze'} ohne Angaben zu freien Plätzen</p>}
             {distanceMode && <p className="mt-1 text-xs text-amber-800">Isochronen derzeit nicht verfügbar. Luftlinienentfernung, keine Fahrzeit.</p>}
             {(routingError || starError) && <p role="status" className="mt-1 text-xs text-amber-800">{routingError || starError}</p>}
+            <button
+              type="button"
+              aria-label={resultsCollapsed ? 'Ergebnisliste öffnen' : 'Ergebnisliste minimieren'}
+              title={resultsCollapsed ? 'Ergebnisliste öffnen' : 'Ergebnisliste minimieren'}
+              aria-expanded={!resultsCollapsed}
+              aria-controls="reachability-results-list"
+              onClick={() => setResultsCollapsed(collapsed => !collapsed)}
+              className="absolute right-1 top-0.5 flex h-11 w-11 items-center justify-center rounded text-gray-600 hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
+            >
+              {resultsCollapsed ? <ChevronUp size={18} aria-hidden="true" /> : <ChevronDown size={18} aria-hidden="true" />}
+            </button>
           </header>
-          <ul className="grid min-h-0 grid-cols-1 gap-x-3 overflow-y-auto px-3 sm:grid-cols-2 lg:grid-cols-3">
+          <ul id="reachability-results-list" className={`${resultsCollapsed ? 'hidden' : 'grid'} min-h-0 grid-cols-1 gap-x-3 overflow-y-auto px-3 sm:grid-cols-2 lg:grid-cols-3`}>
             {availability.sites.map(({ feature, vacant, estimated }) => {
               if (feature.geometry.type !== 'LineString' || feature.geometry.coordinates.length < 2) return null
               const site = feature.properties as SiteProperties
