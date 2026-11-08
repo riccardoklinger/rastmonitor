@@ -44,8 +44,18 @@ def report(days: int = 30):
                 (days,),
             )
             filter_rows = cur.fetchall()
+            cur.execute(
+                """
+                SELECT day, requests, successes
+                FROM routing.isochrone_usage_daily
+                WHERE day >= CURRENT_DATE - %s::int
+                ORDER BY day DESC
+                """,
+                (days,),
+            )
+            routing_rows = cur.fetchall()
 
-        if not rows and not filter_rows:
+        if not rows and not filter_rows and not routing_rows:
             print("Keine Daten vorhanden.")
             return
 
@@ -71,6 +81,21 @@ def report(days: int = 30):
         if not filter_rows:
             print("Keine Filter-Link-Aufrufe vorhanden.")
         print("Links mit beiden Parametern zählen einmal je Parameter.\n")
+
+        print("  Isochrone (Tagesgesamtwerte, UTC; keine eindeutigen Besucher)")
+        print(f"{'Datum':<14} {'Anfragen':>10} {'Erfolgreich':>12} {'Fehler':>8}")
+        routing_total = successes_total = failures_total = 0
+        for day, requests, successes in routing_rows:
+            failures = requests - successes
+            routing_total += requests
+            successes_total += successes
+            failures_total += failures
+            print(f"{str(day):<14} {requests:>10} {successes:>12} {failures:>8}")
+        print(f"{'-'*46}")
+        print(f"{'Gesamt':<14} {routing_total:>10} {successes_total:>12} {failures_total:>8}")
+        if not routing_rows:
+            print("Keine Isochronen-Aufrufe vorhanden.")
+        print()
 
     finally:
         conn.close()
