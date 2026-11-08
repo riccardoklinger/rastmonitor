@@ -92,7 +92,9 @@ def report(days: int = 30):
             failures_total += failures
             print(f"{str(day):<14} {requests:>10} {successes:>12} {failures:>8}")
         print(f"{'-'*46}")
-        print(f"{'Gesamt':<14} {routing_total:>10} {successes_total:>12} {failures_total:>8}")
+        print(
+            f"{'Gesamt':<14} {routing_total:>10} {successes_total:>12} {failures_total:>8}"
+        )
         if not routing_rows:
             print("Keine Isochronen-Aufrufe vorhanden.")
         print()
