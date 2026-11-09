@@ -55,10 +55,14 @@ export default function Impressum() {
             Zugriffskontrolle, nicht der Nutzungsanalyse.
           </p>
           <p>
-            Je nach gewählter Kartengrundlage werden Kartenstile und Kartenkacheln direkt
-            von externen Anbietern (BKG bzw. Esri) geladen. Dabei wird unter anderem die
-            IP-Adresse an den jeweiligen Anbieter übermittelt. Für diese Anfragen gelten
-            dessen Datenschutzbestimmungen.
+            Erst nach Ihrer Einwilligung werden Kartenstile, Kartenkacheln und Vorschaubilder
+            direkt von externen Anbietern (BKG bzw. Esri, esri.com / arcgisonline.com) geladen.
+            Dabei werden Ihre IP-Adresse und die angefragten Kartenausschnitte an den
+            jeweiligen Anbieter übermittelt. Für diese Anfragen gelten dessen
+            Datenschutzbestimmungen. Ohne Einwilligung bleiben die Parkplatzdaten auf
+            einem neutralen Hintergrund nutzbar. Ihre Auswahl wird für 180 Tage in einem
+            Cookie Ihres Browsers gespeichert. Sie können die Einwilligung jederzeit im Menü
+            zur Auswahl der Hintergrundkarte widerrufen oder nachträglich erteilen.
           </p>
         </section>
       </div>

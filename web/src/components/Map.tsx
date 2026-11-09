@@ -104,6 +104,12 @@ const BASEMAPS: { id: string; label: string; caption: string; style: string | ma
 ]
 
 const DEFAULT_BASEMAP = BASEMAPS.find(basemap => basemap.id === 'light-grey') ?? BASEMAPS[0]
+const BASEMAP_CONSENT_KEY = 'rastmonitor-basemap-consent-v1'
+const LOCAL_BACKGROUND: maplibregl.StyleSpecification = {
+  version: 8,
+  sources: {},
+  layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#f3f4f6' } }],
+}
 
 function BasemapPreview({ style }: { style: string | maplibregl.StyleSpecification }) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -277,6 +283,9 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
   const [basemapMenuOpen, setBasemapMenuOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [basemapId, setBasemapId] = useState(DEFAULT_BASEMAP.id)
+  const [basemapConsent, setBasemapConsent] = useState<boolean | null>(null)
+  const [showBasemapConsent, setShowBasemapConsent] = useState(false)
+  const externalBasemapAppliedRef = useRef(false)
   const [starActive, setStarActive] = useState(false)
   const [resultsCollapsed, setResultsCollapsed] = useState(false)
   const [starMinutes, setStarMinutes] = useState(STAR_MINUTES)
@@ -320,6 +329,15 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
       if (popupRef.current === popup) popupRef.current = null
     })
   }, [])
+  const chooseBasemapConsent = (accepted: boolean) => {
+    setBasemapConsent(accepted)
+    setShowBasemapConsent(false)
+    setBasemapId(DEFAULT_BASEMAP.id)
+    if (basemapMenuRef.current) basemapMenuRef.current.open = false
+    try {
+      document.cookie = `${BASEMAP_CONSENT_KEY}=${accepted ? 'accepted' : 'declined'}; Path=/; Max-Age=15552000; SameSite=Lax${window.location.protocol === 'https:' ? '; Secure' : ''}`
+    } catch {}
+  }
 
   useEffect(() => {
     if (starAdjusting) {
@@ -531,6 +549,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
     dataUrlRef.current = dataUrl
     const source = mapRef.current?.getSource('parking') as maplibregl.GeoJSONSource | undefined
     if (source) {
+      setLoading(true)
       source.setData(dataUrl)
     }
   }, [dataUrl])
@@ -557,7 +576,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: DEFAULT_BASEMAP.style,
+      style: LOCAL_BACKGROUND,
       center: [10.4515, 51.1657], // Germany centre
       zoom: 6,
       attributionControl: false,
@@ -586,6 +605,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
     )
 
     map.on('style.load', () => {
+      setLoading(true)
       map.addSource('parking', {
         type: 'geojson',
         data: dataUrlRef.current,
@@ -672,15 +692,13 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
       map.getCanvas().style.cursor = starActiveRef.current ? 'crosshair' : ''
     })
 
-    map.on('sourcedataloading', (e) => {
-      if (e.sourceId === 'parking') setLoading(true)
-    })
     map.on('sourcedata', (e) => {
       if (e.sourceId === 'parking' && map.isSourceLoaded('parking')) {
         setLoading(false)
         void fitPendingFilters()
       }
     })
+    map.on('idle', () => setLoading(false))
     map.on('error', () => setLoading(false))
 
     // Pointer cursor on hover
@@ -733,7 +751,10 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
     const interval = setInterval(() => {
       if (dataUrlRef.current !== '/api/sites') return  // skip in history mode
       const source = map.getSource('parking') as maplibregl.GeoJSONSource | undefined
-      source?.setData('/api/sites')
+      if (source) {
+        setLoading(true)
+        source.setData('/api/sites')
+      }
     }, 5 * 60 * 1000)
 
     return () => {
@@ -743,9 +764,42 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
     }
   }, [onSiteSelect, fitPendingFilters])
 
+  useEffect(() => {
+    let stored: string | null = null
+    try {
+      stored = document.cookie.split(';').map(cookie => cookie.trim()).find(cookie => cookie.startsWith(`${BASEMAP_CONSENT_KEY}=`))?.slice(BASEMAP_CONSENT_KEY.length + 1) ?? null
+    } catch {}
+    setBasemapConsent(stored === 'accepted')
+    setShowBasemapConsent(stored !== 'accepted' && stored !== 'declined')
+  }, [])
+
+  useEffect(() => {
+    if (basemapConsent === null || externalBasemapAppliedRef.current === basemapConsent) return
+    externalBasemapAppliedRef.current = basemapConsent
+    mapRef.current?.setStyle(basemapConsent ? DEFAULT_BASEMAP.style : LOCAL_BACKGROUND, { diff: false })
+  }, [basemapConsent])
+
   return (
     <div className="relative w-full h-full">
       <div ref={containerRef} className="w-full h-full" />
+      {showBasemapConsent && (
+        <section
+          aria-labelledby="basemap-consent-title"
+          className="absolute left-3 right-14 top-16 z-40 mx-auto max-w-md rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-800 shadow-lg"
+        >
+          <h2 id="basemap-consent-title" className="font-semibold">Externe Hintergrundkarten</h2>
+          <p className="mt-2 text-xs leading-relaxed text-gray-600">
+            Hintergrundkarten und Vorschaubilder werden von BKG und Esri (esri.com / arcgisonline.com) geladen.
+            Dabei erhalten die Anbieter Ihre IP-Adresse und die angefragten Kartenausschnitte.
+            Erst nach Ihrer Zustimmung werden diese Verbindungen hergestellt.
+          </p>
+          <a href="/impressum" className="mt-2 inline-block text-xs text-blue-700 underline">Datenschutz</a>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" onClick={() => chooseBasemapConsent(true)} className="min-h-11 rounded border border-blue-700 bg-blue-700 px-3 py-2 text-xs font-medium text-white hover:bg-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600">Akzeptieren und Karten laden</button>
+            <button type="button" onClick={() => chooseBasemapConsent(false)} className="min-h-11 rounded border border-gray-300 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600">Ohne Hintergrundkarte fortfahren</button>
+          </div>
+        </section>
+      )}
       <button
         type="button"
         aria-label="Sternanalyse"
@@ -887,7 +941,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
         </div>
       )}
       {loading && (
-        <div role="status" aria-live="polite" className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-2 bg-white/60">
+        <div role="status" aria-live="polite" className="pointer-events-none absolute bottom-3 left-3 z-30 flex items-center gap-2 rounded bg-white/95 px-3 py-2 shadow">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-300 border-t-blue-600" />
           <span className="text-sm font-medium text-gray-700">Loading</span>
         </div>
@@ -902,6 +956,16 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
         </summary>
         <fieldset className="absolute top-0 right-[39px] w-72 max-w-[calc(100vw-59px)] max-h-[calc(100dvh-12rem)] overflow-y-auto rounded bg-white p-2 shadow-lg ring-1 ring-black/10">
           <legend className="sr-only">Hintergrundkarte</legend>
+          {!basemapConsent && (
+            <div className="space-y-2 p-2 text-xs text-gray-700">
+              <p>Externe Hintergrundkarten sind deaktiviert.</p>
+              <button type="button" onClick={() => {
+                setShowBasemapConsent(true)
+                if (basemapMenuRef.current) basemapMenuRef.current.open = false
+              }} className="min-h-11 rounded border border-gray-300 px-3 py-2 hover:bg-gray-100">Datenschutzauswahl öffnen</button>
+            </div>
+          )}
+          {basemapConsent && <>
           <div className="grid grid-cols-2 gap-2">
           {BASEMAPS.filter(basemap => basemap.id !== 'default' || !BASEMAPS.some(option => option.id !== 'default' && option.style === MAP_STYLE)).map(basemap => (
             <label key={basemap.id} title={basemap.label} className="relative cursor-pointer">
@@ -930,6 +994,8 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
             © GeoBasis-DE / BKG {new Date().getFullYear()} · <a href="https://sgx.geodatenzentrum.de/web_public/gdz/datenquellen/datenquellen_topplusopen.html" className="underline" target="_blank" rel="noopener noreferrer">Datenquellen</a><br />
             © Esri, Vantor, Earthstar Geographics, GIS User Community
           </p>
+          <button type="button" onClick={() => chooseBasemapConsent(false)} className="mt-2 min-h-11 w-full rounded border border-gray-300 px-3 py-2 text-xs text-gray-700 hover:bg-gray-100">Einwilligung widerrufen</button>
+          </>}
         </fieldset>
       </details>
     </div>
