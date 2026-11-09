@@ -60,7 +60,7 @@ export default function Impressum() {
             Dabei werden Ihre IP-Adresse und die angefragten Kartenausschnitte an den
             jeweiligen Anbieter übermittelt. Für diese Anfragen gelten dessen
             Datenschutzbestimmungen. Ohne Einwilligung bleiben die Parkplatzdaten auf
-            einem neutralen Hintergrund nutzbar. Ihre Auswahl wird für 180 Tage in einem
+            einer lokal bereitgestellten NUTS-Grenzkarte nutzbar. Ihre Auswahl wird für 180 Tage in einem
             Cookie Ihres Browsers gespeichert. Sie können die Einwilligung jederzeit im Menü
             zur Auswahl der Hintergrundkarte widerrufen oder nachträglich erteilen.
           </p>

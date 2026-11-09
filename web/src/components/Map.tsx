@@ -107,9 +107,37 @@ const DEFAULT_BASEMAP = BASEMAPS.find(basemap => basemap.id === 'light-grey') ??
 const BASEMAP_CONSENT_KEY = 'rastmonitor-basemap-consent-v1'
 const LOCAL_BACKGROUND: maplibregl.StyleSpecification = {
   version: 8,
-  sources: {},
-  layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#f3f4f6' } }],
+  sources: {
+    'nuts-boundaries': { type: 'geojson', data: '/data/nuts.geojson' },
+    autobahn: {
+      type: 'geojson', data: '/data/autobahn.geojson',
+      attribution: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>',
+    },
+  },
+  layers: [
+    { id: 'background', type: 'background', paint: { 'background-color': '#f3f4f6' } },
+    {
+      id: 'nuts-level-3', type: 'line', source: 'nuts-boundaries',
+      filter: ['==', ['get', 'LEVL_CODE'], 3],
+      paint: { 'line-color': '#d1d5db', 'line-width': 1, 'line-opacity': ['step', ['zoom'], 0, 8.001, 1] },
+    },
+    {
+      id: 'nuts-level-2', type: 'line', source: 'nuts-boundaries',
+      filter: ['==', ['get', 'LEVL_CODE'], 2],
+      paint: { 'line-color': '#4b5563', 'line-width': 2 },
+    },
+    {
+      id: 'autobahn', type: 'line', source: 'autobahn',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: {
+        'line-color': '#295787',
+        'line-width': ['interpolate', ['linear'], ['zoom'], 5, 0.6, 10, 2.5, 14, 5],
+      },
+    },
+  ],
 }
+
+const LOCAL_BASEMAP = { id: 'local', label: 'Minimal · Lokal', caption: 'Minimal · Lokal', style: LOCAL_BACKGROUND }
 
 function BasemapPreview({ style }: { style: string | maplibregl.StyleSpecification }) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -282,7 +310,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
   const basemapMenuRef  = useRef<HTMLDetailsElement>(null)
   const [basemapMenuOpen, setBasemapMenuOpen] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [basemapId, setBasemapId] = useState(DEFAULT_BASEMAP.id)
+  const [basemapId, setBasemapId] = useState(LOCAL_BASEMAP.id)
   const [basemapConsent, setBasemapConsent] = useState<boolean | null>(null)
   const [showBasemapConsent, setShowBasemapConsent] = useState(false)
   const externalBasemapAppliedRef = useRef(false)
@@ -332,7 +360,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
   const chooseBasemapConsent = (accepted: boolean) => {
     setBasemapConsent(accepted)
     setShowBasemapConsent(false)
-    setBasemapId(DEFAULT_BASEMAP.id)
+    setBasemapId(accepted ? DEFAULT_BASEMAP.id : LOCAL_BASEMAP.id)
     if (basemapMenuRef.current) basemapMenuRef.current.open = false
     try {
       document.cookie = `${BASEMAP_CONSENT_KEY}=${accepted ? 'accepted' : 'declined'}; Path=/; Max-Age=15552000; SameSite=Lax${window.location.protocol === 'https:' ? '; Secure' : ''}`
@@ -776,6 +804,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
   useEffect(() => {
     if (basemapConsent === null || externalBasemapAppliedRef.current === basemapConsent) return
     externalBasemapAppliedRef.current = basemapConsent
+    setBasemapId(basemapConsent ? DEFAULT_BASEMAP.id : LOCAL_BASEMAP.id)
     mapRef.current?.setStyle(basemapConsent ? DEFAULT_BASEMAP.style : LOCAL_BACKGROUND, { diff: false })
   }, [basemapConsent])
 
@@ -965,9 +994,8 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
               }} className="min-h-11 rounded border border-gray-300 px-3 py-2 hover:bg-gray-100">Datenschutzauswahl öffnen</button>
             </div>
           )}
-          {basemapConsent && <>
           <div className="grid grid-cols-2 gap-2">
-          {BASEMAPS.filter(basemap => basemap.id !== 'default' || !BASEMAPS.some(option => option.id !== 'default' && option.style === MAP_STYLE)).map(basemap => (
+          {[LOCAL_BASEMAP, ...(basemapConsent ? BASEMAPS : [])].filter(basemap => basemap.id !== 'default' || !BASEMAPS.some(option => option.id !== 'default' && option.style === MAP_STYLE)).map(basemap => (
             <label key={basemap.id} title={basemap.label} className="relative cursor-pointer">
               <input
                 type="radio"
@@ -984,12 +1012,15 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
                 className="peer sr-only"
               />
               <div className="overflow-hidden rounded border border-gray-200 peer-checked:border-blue-600 peer-checked:ring-1 peer-checked:ring-blue-600 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-blue-600 hover:border-gray-400">
-                {basemapMenuOpen ? <BasemapPreview style={basemap.style} /> : <div className="h-20 bg-gray-100" />}
+                {basemap.id === LOCAL_BASEMAP.id ? (
+                  <img src="/data/local-basemap-preview.png" alt="" aria-hidden="true" width={560} height={320} className="h-20 w-full object-cover" />
+                ) : basemapMenuOpen ? <BasemapPreview style={basemap.style} /> : <div className="h-20 bg-gray-100" />}
                 <span className="flex h-8 items-center justify-center bg-white px-1 text-xs text-gray-700">{basemap.caption}</span>
               </div>
             </label>
           ))}
           </div>
+          {basemapConsent && <>
           <p className="mt-2 text-[9px] leading-snug text-gray-500">
             © GeoBasis-DE / BKG {new Date().getFullYear()} · <a href="https://sgx.geodatenzentrum.de/web_public/gdz/datenquellen/datenquellen_topplusopen.html" className="underline" target="_blank" rel="noopener noreferrer">Datenquellen</a><br />
             © Esri, Vantor, Earthstar Geographics, GIS User Community
