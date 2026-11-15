@@ -103,7 +103,7 @@ const BASEMAPS: { id: string; label: string; caption: string; style: string | ma
   },
 ]
 
-const DEFAULT_BASEMAP = BASEMAPS.find(basemap => basemap.id === 'light-grey') ?? BASEMAPS[0]
+const DEFAULT_BASEMAP = BASEMAPS.find(basemap => basemap.id === 'grey') ?? BASEMAPS[0]
 const BASEMAP_CONSENT_KEY = 'rastmonitor-basemap-consent-v1'
 const LOCAL_BACKGROUND: maplibregl.StyleSpecification = {
   version: 8,
@@ -673,11 +673,11 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
       map.addSource('parking-isochrone', { type: 'geojson', data: isochroneDataRef.current, attribution: '© openrouteservice by HeiGIT | © OpenStreetMap contributors' })
       map.addLayer({
         id: 'parking-isochrone-fill', type: 'fill', source: 'parking-isochrone',
-        paint: { 'fill-color': '#0891b2', 'fill-opacity': 0.06 },
+        paint: { 'fill-color': '#3570ad', 'fill-opacity': 0.2 },
       }, 'parking-circles-dim')
       map.addLayer({
         id: 'parking-isochrone-outline', type: 'line', source: 'parking-isochrone',
-        paint: { 'line-color': '#0891b2', 'line-opacity': 0.7, 'line-width': 1.5, 'line-dasharray': [3, 2] },
+        paint: { 'line-color': '#3570ad', 'line-opacity': 0.7, 'line-width': 1.5, 'line-dasharray': [3, 2] },
       }, 'parking-circles-dim')
       map.addSource('parking-star', { type: 'geojson', data: starDataRef.current, lineMetrics: true })
       for (const color of STAR_COLORS) {
