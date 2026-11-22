@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react'
 import { createRoot } from 'react-dom/client'
 import maplibregl from 'maplibre-gl'
+import { useLocale, useTranslations } from 'next-intl'
 import { ChevronDown, ChevronUp, Layers, Navigation, Radar } from 'lucide-react'
+import { Link } from '@/i18n/navigation'
 import { applyFilters, zoomToFilteredSites, zoomToHighlightedSite } from '@/lib/map-filters'
 import { buildDirectionsUrl, type MapProvider } from '@/lib/map-directions'
 import { buildParkingStar, summarizeParkingAvailability, STAR_MINUTES, STAR_RADIUS_KM, type ParkingIsochrone } from '@/lib/parking-star'
@@ -23,6 +25,16 @@ const OCCUPANCY_COLOR: any = [
 ]
 const STAR_COLORS = ['#9ca3af', '#22c55e', '#eab308', '#f97316', '#ef4444', '#7f1d1d']
 const STAR_LINE_LAYER_IDS = STAR_COLORS.map(color => `parking-star-lines-${color.slice(1)}`)
+const BASEMAP_MESSAGE_KEYS: Record<string, string> = {
+  default: 'standard',
+  color: 'color',
+  grey: 'gray',
+  relief: 'relief',
+  light: 'light',
+  'light-grey': 'lightGray',
+  imagery: 'imagery',
+  local: 'localMinimal',
+}
 
 export interface SiteProperties {
   datex_id: string
@@ -83,22 +95,22 @@ function rasterStyle(tiles: string, attribution: string, maxzoom: number): mapli
 }
 
 const BKG_STYLE_ROOT = 'https://sgx.geodatenzentrum.de/gdz_basemapde_vektor/styles'
-const BKG_TOPPLUS_CREDIT = `© BKG ${new Date().getFullYear()} <a href="https://www.govdata.de/dl-de/by-2-0">dl-de/by-2-0</a> · <a href="https://sgx.geodatenzentrum.de/web_public/gdz/datenquellen/datenquellen_topplusopen.html">Datenquellen</a>`
-const BASEMAPS: { id: string; label: string; caption: string; style: string | maplibregl.StyleSpecification }[] = [
-  { id: 'default', label: 'Standard', caption: 'Standard', style: MAP_STYLE },
-  { id: 'color', label: 'BKG · Farbe', caption: 'Farbe', style: `${BKG_STYLE_ROOT}/bm_web_col.json` },
-  { id: 'grey', label: 'BKG · Grau', caption: 'Grau', style: `${BKG_STYLE_ROOT}/bm_web_gry.json` },
-  { id: 'relief', label: 'BKG · Relief', caption: 'Relief', style: `${BKG_STYLE_ROOT}/bm_web_top.json` },
+const BKG_TOPPLUS_CREDIT = `© BKG ${new Date().getFullYear()} <a href="https://www.govdata.de/dl-de/by-2-0">dl-de/by-2-0</a> · <a href="https://sgx.geodatenzentrum.de/web_public/gdz/datenquellen/datenquellen_topplusopen.html">BKG</a>`
+const BASEMAPS: { id: string; style: string | maplibregl.StyleSpecification }[] = [
+  { id: 'default', style: MAP_STYLE },
+  { id: 'color', style: `${BKG_STYLE_ROOT}/bm_web_col.json` },
+  { id: 'grey', style: `${BKG_STYLE_ROOT}/bm_web_gry.json` },
+  { id: 'relief', style: `${BKG_STYLE_ROOT}/bm_web_top.json` },
   {
-    id: 'light', label: 'BKG · TopPlusOpen Light', caption: 'Light',
+    id: 'light',
     style: rasterStyle('https://sgx.geodatenzentrum.de/wmts_topplus_open/tile/1.0.0/web_light/default/WEBMERCATOR/{z}/{y}/{x}.png', BKG_TOPPLUS_CREDIT, 18),
   },
   {
-    id: 'light-grey', label: 'BKG · TopPlusOpen Light Grau', caption: 'Light Grau',
+    id: 'light-grey',
     style: rasterStyle('https://sgx.geodatenzentrum.de/wmts_topplus_open/tile/1.0.0/web_light_grau/default/WEBMERCATOR/{z}/{y}/{x}.png', BKG_TOPPLUS_CREDIT, 18),
   },
   {
-    id: 'imagery', label: 'Esri · Luftbild', caption: 'Luftbild',
+    id: 'imagery',
     style: rasterStyle('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', '<a href="https://www.esri.com/">Esri</a>, Vantor, Earthstar Geographics, and the GIS User Community', 19),
   },
 ]
@@ -137,7 +149,7 @@ const LOCAL_BACKGROUND: maplibregl.StyleSpecification = {
   ],
 }
 
-const LOCAL_BASEMAP = { id: 'local', label: 'Minimal · Lokal', caption: 'Minimal · Lokal', style: LOCAL_BACKGROUND }
+const LOCAL_BASEMAP = { id: 'local', style: LOCAL_BACKGROUND }
 
 function BasemapPreview({ style }: { style: string | maplibregl.StyleSpecification }) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -160,20 +172,33 @@ function BasemapPreview({ style }: { style: string | maplibregl.StyleSpecificati
   return <div ref={containerRef} aria-hidden="true" className="pointer-events-none h-20 w-full bg-gray-100" />
 }
 
-function formatTs(iso: string | null): string {
+function formatTs(iso: string | null, locale: string): string {
   if (!iso) return '–'
   const d = new Date(iso)
   // If it looks like a plain date (YYYY-MM-DD), format as date only
   if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
-    return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    return d.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' })
   }
-  return d.toLocaleString('de-DE', {
+  return d.toLocaleString(locale, {
     day: '2-digit', month: '2-digit', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
   })
 }
 
-function buildPopupHtml(props: SiteProperties, metricLabel: string): string {
+interface PopupLabels {
+  noData: string
+  compliant: string
+  tolerated: string
+  total: string
+  free: string
+}
+
+function buildPopupHtml(
+  props: SiteProperties,
+  metricLabel: string,
+  labels: PopupLabels,
+  locale: string,
+): string {
   const pct = props.occupancy_pct
   const color =
     pct == null  ? '#9ca3af' :
@@ -182,7 +207,7 @@ function buildPopupHtml(props: SiteProperties, metricLabel: string): string {
     pct >= 80    ? '#f97316' :
     pct >= 50    ? '#eab308' :
                    '#22c55e'
-  const pctStr = pct != null ? `${Number(pct).toFixed(1)} %` : 'Keine Daten'
+  const pctStr = pct != null ? `${Number(pct).toLocaleString(locale, { maximumFractionDigits: 1 })} %` : labels.noData
 
   const officialSpaces = props.official_spaces ?? null
   const totalSpaces = props.total_spaces ?? null
@@ -193,14 +218,14 @@ function buildPopupHtml(props: SiteProperties, metricLabel: string): string {
 
   // Prefer vacant spaces from the feed; estimate only when they are missing.
   const spacesStr = `${
-    officialSpaces != null ? `${officialSpaces} StVO-konform · ` : ''
+    officialSpaces != null ? `${officialSpaces.toLocaleString(locale)} ${labels.compliant} · ` : ''
   }${
-    toleratedSpaces != null ? `${toleratedSpaces} geduldet · ` : ''
-  }${totalSpaces ?? '–'} gesamt${
+    toleratedSpaces != null ? `${toleratedSpaces.toLocaleString(locale)} ${labels.tolerated} · ` : ''
+  }${totalSpaces?.toLocaleString(locale) ?? '–'} ${labels.total}${
     props.vacant_spaces != null
-      ? ` · ${props.vacant_spaces} frei`
+      ? ` · ${props.vacant_spaces.toLocaleString(locale)} ${labels.free}`
       : (pct != null && totalSpaces != null)
-        ? ` · ~${Math.max(0, Math.round(totalSpaces * (1 - pct / 100)))} frei`
+        ? ` · ~${Math.max(0, Math.round(totalSpaces * (1 - pct / 100))).toLocaleString(locale)} ${labels.free}`
         : ''
   }`
 
@@ -212,16 +237,23 @@ function buildPopupHtml(props: SiteProperties, metricLabel: string): string {
         <span style="font-size:13px;font-weight:600;color:#111">${pctStr}</span>
         <span style="font-size:11px;color:#6b7280">${metricLabel}</span>
       </div>
-      <div style="font-size:11px;color:#6b7280">${formatTs(props.fetched_at)}</div>
+      <div style="font-size:11px;color:#6b7280">${formatTs(props.fetched_at, locale)}</div>
       <div style="font-size:11px;color:#6b7280">${spacesStr}</div>
     </div>
   `
 }
 
-function showSitePopup(map: maplibregl.Map, lngLat: maplibregl.LngLatLike, site: SiteProperties, metricLabel: string) {
+function showSitePopup(
+  map: maplibregl.Map,
+  lngLat: maplibregl.LngLatLike,
+  site: SiteProperties,
+  metricLabel: string,
+  labels: PopupLabels,
+  locale: string,
+) {
   return new maplibregl.Popup({ closeButton: true, maxWidth: '260px', offset: 12, className: 'site-map-popup' })
     .setLngLat(lngLat)
-    .setHTML(buildPopupHtml(site, metricLabel))
+    .setHTML(buildPopupHtml(site, metricLabel, labels, locale))
     .addTo(map)
 }
 
@@ -245,28 +277,30 @@ function ReachabilityPopup({ site, origin, destination }: {
   origin: [number, number]
   destination: [number, number]
 }) {
+  const t = useTranslations('map')
+  const locale = useLocale()
   const provider = getDirectionsProvider()
-  const providerName = provider === 'apple' ? 'Apple Karten' : 'Google Maps'
+  const providerName = provider === 'apple' ? t('appleMaps') : t('googleMaps')
   const streetAddress = [site.street, site.house_number].filter(value => value?.trim()).join(' ')
   const locality = [site.postcode, site.city].filter(value => value?.trim()).join(' ')
   const occupancy = site.occupancy_pct != null && Number.isFinite(Number(site.occupancy_pct))
-    ? `${Number(site.occupancy_pct).toFixed(1)} %`
-    : 'Keine Daten'
+    ? `${Number(site.occupancy_pct).toLocaleString(locale, { maximumFractionDigits: 1 })} %`
+    : t('noData')
 
   return (
     <div className="min-w-52 pr-1 text-sm text-gray-800">
-      <strong className="block pr-1 text-sm font-semibold">{site.name || 'Rastplatz'}</strong>
+      <strong className="block pr-1 text-sm font-semibold">{site.name || t('parking')}</strong>
       <p className="mt-1 text-xs text-gray-600">
-        {streetAddress || 'Keine Straßenadresse'}
+        {streetAddress || t('noStreetAddress')}
         {locality && <><br />{locality}</>}
       </p>
-      <p className="mt-2 text-xs text-gray-700">Aktuelle Auslastung: <strong>{occupancy}</strong></p>
+      <p className="mt-2 text-xs text-gray-700">{t('currentOccupancy')} <strong>{occupancy}</strong></p>
       <a
         href={buildDirectionsUrl(origin, destination, provider)}
         target="_blank"
         rel="noopener noreferrer"
-        aria-label={`Route zum Rastplatz in ${providerName} öffnen`}
-        title={`Route in ${providerName} öffnen`}
+        aria-label={t('openRoute', { provider: providerName })}
+        title={t('openRouteShort', { provider: providerName })}
         className="mt-2 inline-flex h-11 min-w-11 items-center justify-center rounded border border-gray-200 text-blue-700 hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
       >
         <Navigation size={19} aria-hidden="true" />
@@ -293,14 +327,31 @@ function showReachabilityPopup(
 }
 
 const Map = forwardRef<MapHandle, MapProps>(function Map(
-  { onSiteSelect, onSiteClick, dataUrl = '/api/sites', metricLabel = 'Auslastung', highlightSiteId = '', operatorFilter = '', roadFilter = '', stateFilter = '' },
+  { onSiteSelect, onSiteClick, dataUrl = '/api/sites', metricLabel: metricLabelProp, highlightSiteId = '', operatorFilter = '', roadFilter = '', stateFilter = '' },
   ref
 ) {
+  const locale = useLocale()
+  const t = useTranslations('map')
+  const metricLabel = metricLabelProp ?? t('occupancy')
   const containerRef    = useRef<HTMLDivElement>(null)
   const mapRef          = useRef<maplibregl.Map | null>(null)
   const popupRef        = useRef<maplibregl.Popup | null>(null)
   const dataUrlRef      = useRef(dataUrl)
   const metricLabelRef  = useRef(metricLabel)
+  const localeRef = useRef(locale)
+  const popupLabelsRef = useRef<PopupLabels>({
+    noData: t('noData'),
+    compliant: t('compliant'),
+    tolerated: t('tolerated'),
+    total: t('total'),
+    free: t('free'),
+  })
+  const mapMessagesRef = useRef({
+    routingUnavailable: t('routingUnavailable'),
+    liveUnavailable: t('liveUnavailable'),
+    invalidLiveData: t('invalidLiveData'),
+    locationUnavailable: t('locationUnavailable'),
+  })
   const roadFilterRef   = useRef(roadFilter)
   const stateFilterRef = useRef(stateFilter)
   const operatorFilterRef = useRef(operatorFilter)
@@ -368,6 +419,23 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
   }
 
   useEffect(() => {
+    localeRef.current = locale
+    popupLabelsRef.current = {
+      noData: t('noData'),
+      compliant: t('compliant'),
+      tolerated: t('tolerated'),
+      total: t('total'),
+      free: t('free'),
+    }
+    mapMessagesRef.current = {
+      routingUnavailable: t('routingUnavailable'),
+      liveUnavailable: t('liveUnavailable'),
+      invalidLiveData: t('invalidLiveData'),
+      locationUnavailable: t('locationUnavailable'),
+    }
+  }, [locale, t])
+
+  useEffect(() => {
     if (starAdjusting) {
       setRoutingLoading(false)
       return
@@ -394,7 +462,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
         if (controller.signal.aborted) return
         if (!response.ok) {
           if (data.code === 'ROUTING_BUSY' || response.status === 400) {
-            setRoutingError(data.error || 'Lkw-Routing nicht verfügbar')
+            setRoutingError(data.error || mapMessagesRef.current.routingUnavailable)
           } else setRoutingAvailable(false)
           return
         }
@@ -402,7 +470,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
       } catch (error) {
         if (!controller.signal.aborted) {
           setRoutingAvailable(false)
-          setRoutingError(error instanceof Error ? error.message : 'Lkw-Routing nicht verfügbar')
+          setRoutingError(error instanceof Error ? error.message : mapMessagesRef.current.routingUnavailable)
         }
       } finally {
         if (!controller.signal.aborted) setRoutingLoading(false)
@@ -438,14 +506,14 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
       setStarLoading(true)
       try {
         const response = await fetch('/api/sites', { signal: controller.signal, cache: 'no-store' })
-        if (!response.ok) throw new Error('Live-Daten nicht verfügbar')
+        if (!response.ok) throw new Error(mapMessagesRef.current.liveUnavailable)
         const data = await response.json()
-        if (data.type !== 'FeatureCollection' || !Array.isArray(data.features)) throw new Error('Ungültige Live-Daten')
+        if (data.type !== 'FeatureCollection' || !Array.isArray(data.features)) throw new Error(mapMessagesRef.current.invalidLiveData)
         if (controller.signal.aborted) return
         setLiveSites(data)
         setStarError('')
       } catch (error) {
-        if (!controller.signal.aborted) setStarError(error instanceof Error ? error.message : 'Live-Daten nicht verfügbar')
+        if (!controller.signal.aborted) setStarError(error instanceof Error ? error.message : mapMessagesRef.current.liveUnavailable)
       } finally {
         if (!controller.signal.aborted) setStarLoading(false)
       }
@@ -523,7 +591,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
         if (selected) {
           const [lng, lat] = selected.geometry.coordinates
           const site = selected.properties as SiteProperties
-          replacePopup(() => showSitePopup(map, [lng, lat], site, metricLabelRef.current))
+          replacePopup(() => showSitePopup(map, [lng, lat], site, metricLabelRef.current, popupLabelsRef.current, localeRef.current))
           onSiteSelect(site)
         }
         return
@@ -532,7 +600,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
       if (singleMatch) {
         const [lng, lat] = singleMatch.geometry.coordinates
         const site = singleMatch.properties as SiteProperties
-        replacePopup(() => showSitePopup(map, [lng, lat], site, metricLabelRef.current))
+        replacePopup(() => showSitePopup(map, [lng, lat], site, metricLabelRef.current, popupLabelsRef.current, localeRef.current))
         onSiteSelect(site)
       }
     } catch (error) {
@@ -565,7 +633,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
     },
     showPopup: (lng, lat, site, label = metricLabelRef.current) => {
       const map = mapRef.current
-      if (map) replacePopup(() => showSitePopup(map, [lng, lat], site, label))
+      if (map) replacePopup(() => showSitePopup(map, [lng, lat], site, label, popupLabelsRef.current, localeRef.current))
     },
   }))
 
@@ -622,12 +690,12 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
       }
     })
     geolocate.on('error', () => {
-      if (starActiveRef.current) setStarError('Standort nicht verfügbar')
+      if (starActiveRef.current) setStarError(mapMessagesRef.current.locationUnavailable)
     })
     map.addControl(geolocate, 'top-right')
     map.addControl(
       new maplibregl.AttributionControl({
-        customAttribution: 'Daten: <a href="https://www.toll-collect.de" target="_blank" rel="noopener">Toll Collect</a> via Mobilithek',
+        customAttribution: '<a href="https://www.toll-collect.de" target="_blank" rel="noopener">Toll Collect</a> via Mobilithek',
       }),
       'bottom-right'
     )
@@ -765,7 +833,7 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
         return
       }
 
-      replacePopup(() => showSitePopup(map, [lng, lat], props, metricLabelRef.current))
+      replacePopup(() => showSitePopup(map, [lng, lat], props, metricLabelRef.current, popupLabelsRef.current, localeRef.current))
 
       onSiteSelect(props)
       onSiteClick?.(props)
@@ -816,23 +884,21 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
           aria-labelledby="basemap-consent-title"
           className="absolute left-3 right-14 top-16 z-40 mx-auto max-w-md rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-800 shadow-lg"
         >
-          <h2 id="basemap-consent-title" className="font-semibold">Externe Hintergrundkarten</h2>
+          <h2 id="basemap-consent-title" className="font-semibold">{t('basemapConsentTitle')}</h2>
           <p className="mt-2 text-xs leading-relaxed text-gray-600">
-            Hintergrundkarten und Vorschaubilder werden von BKG und Esri (esri.com / arcgisonline.com) geladen.
-            Dabei erhalten die Anbieter Ihre IP-Adresse und die angefragten Kartenausschnitte.
-            Erst nach Ihrer Zustimmung werden diese Verbindungen hergestellt.
+            {t('basemapConsentText')}
           </p>
-          <a href="/impressum" className="mt-2 inline-block text-xs text-blue-700 underline">Datenschutz</a>
+          <Link href="/impressum" className="mt-2 inline-block text-xs text-blue-700 underline">{t('privacy')}</Link>
           <div className="mt-3 flex flex-wrap gap-2">
-            <button type="button" onClick={() => chooseBasemapConsent(true)} className="min-h-11 rounded border border-blue-700 bg-blue-700 px-3 py-2 text-xs font-medium text-white hover:bg-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600">Akzeptieren und Karten laden</button>
-            <button type="button" onClick={() => chooseBasemapConsent(false)} className="min-h-11 rounded border border-gray-300 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600">Ohne Hintergrundkarte fortfahren</button>
+            <button type="button" onClick={() => chooseBasemapConsent(true)} className="min-h-11 rounded border border-blue-700 bg-blue-700 px-3 py-2 text-xs font-medium text-white hover:bg-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600">{t('acceptMaps')}</button>
+            <button type="button" onClick={() => chooseBasemapConsent(false)} className="min-h-11 rounded border border-gray-300 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600">{t('continueWithoutMap')}</button>
           </div>
         </section>
       )}
       <button
         type="button"
-        aria-label="Sternanalyse"
-        title={distanceMode ? 'Luftlinienanalyse: Kartenpunkt oder eigenen Standort wählen' : 'Lkw-Fahrzeitanalyse: Kartenpunkt oder eigenen Standort wählen'}
+        aria-label={t('starAnalysis')}
+        title={distanceMode ? t('airDistanceAnalysis') : t('truckTimeAnalysis')}
         aria-pressed={starActive}
         data-active={starActive}
         className="map-toolbar-button absolute top-[205px] right-[10px] z-20"
@@ -858,8 +924,8 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
             max={distanceMode ? 200 : 60}
             step={1}
             value={starDraftValue}
-            aria-label={distanceMode ? 'Luftlinienradius' : 'Lkw-Fahrzeit'}
-            aria-valuetext={`${starDraftValue} ${distanceMode ? 'Kilometer' : 'Minuten'}`}
+            aria-label={distanceMode ? t('radius') : t('truckTime')}
+            aria-valuetext={`${starDraftValue} ${distanceMode ? t('kilometers') : t('minutes')}`}
             aria-orientation="vertical"
             className="w-5 cursor-pointer accent-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
             style={{ writingMode: 'vertical-lr', direction: 'rtl', height: 'min(144px, calc(100dvh - 420px))', minHeight: 48 }}
@@ -892,26 +958,28 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
       )}
       {starActive && starOrigin && starResults.length > 0 && (
         <section
-          aria-label="Rastplätze im Einzugsgebiet"
+          aria-label={t('reachability')}
           className="absolute bottom-2 left-3 right-3 z-20 flex max-h-[34dvh] flex-col overflow-hidden rounded border border-gray-200 bg-white/95 text-gray-800 shadow-lg"
         >
           <header className="relative min-h-12 shrink-0 border-b border-gray-200 py-2 pl-3 pr-14">
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
               <strong className="text-xs font-semibold">
-                {availability.unknown === starResults.length ? 'Freie Plätze: keine Daten' : `${availability.estimated ? '~' : ''}${availability.total} freie Plätze`}
-                {' · '}{starResults.length} Rastplätze · {starValue} {starUnit}
+                {availability.unknown === starResults.length
+                  ? t('unknownVacancies')
+                  : t('freeSpaces', { estimate: availability.estimated ? '~' : '', count: availability.total })}
+                {' · '}{t('parkingCount', { count: starResults.length })} · {starValue} {starUnit}
               </strong>
               <span className="text-xs text-gray-600">
-                {routingLoading ? 'Berechne Fahrzeit…' : starLoading ? 'Lade Live-Daten…' : `${distanceMode ? 'Luftlinie' : 'Lkw'} · Live`}
+                {routingLoading ? t('routingLoading') : starLoading ? t('dataLoading') : `${distanceMode ? t('airDistance') : t('truck')} · ${t('live')}`}
               </span>
             </div>
-            {availability.unknown > 0 && <p className="mt-1 text-xs text-gray-600">{availability.unknown} {availability.unknown === 1 ? 'Rastplatz' : 'Rastplätze'} ohne Angaben zu freien Plätzen</p>}
-            {distanceMode && <p className="mt-1 text-xs text-amber-800">Isochronen derzeit nicht verfügbar. Luftlinienentfernung, keine Fahrzeit.</p>}
+            {availability.unknown > 0 && <p className="mt-1 text-xs text-gray-600">{t('withoutVacancies', { count: availability.unknown })}</p>}
+            {distanceMode && <p className="mt-1 text-xs text-amber-800">{t('noIsochrones')}</p>}
             {(routingError || starError) && <p role="status" className="mt-1 text-xs text-amber-800">{routingError || starError}</p>}
             <button
               type="button"
-              aria-label={resultsCollapsed ? 'Ergebnisliste öffnen' : 'Ergebnisliste minimieren'}
-              title={resultsCollapsed ? 'Ergebnisliste öffnen' : 'Ergebnisliste minimieren'}
+              aria-label={resultsCollapsed ? t('openResults') : t('collapseResults')}
+              title={resultsCollapsed ? t('openResults') : t('collapseResults')}
               aria-expanded={!resultsCollapsed}
               aria-controls="reachability-results-list"
               onClick={() => setResultsCollapsed(collapsed => !collapsed)}
@@ -929,29 +997,29 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
               if (!destination.every(Number.isFinite)) return null
               const streetAddress = [site.street, site.house_number].filter(value => value?.trim()).join(' ')
               const locality = [site.postcode, site.city].filter(value => value?.trim()).join(' ')
-              const address = [streetAddress, locality].filter(Boolean).join(', ') || 'Keine Adresse verfügbar'
+              const address = [streetAddress, locality].filter(Boolean).join(', ') || t('noAddress')
               const occupancy = site.occupancy_pct != null && Number.isFinite(Number(site.occupancy_pct))
                 ? `${Number(site.occupancy_pct).toFixed(1)} %`
-                : 'Keine Daten'
+                : t('noData')
               const provider = getDirectionsProvider()
-              const providerName = provider === 'apple' ? 'Apple Karten' : 'Google Maps'
+              const providerName = provider === 'apple' ? t('appleMaps') : t('googleMaps')
               return (
                 <li key={site.datex_id} className="flex min-w-0 items-center gap-3 border-b border-gray-100 py-2">
                   <div className="min-w-0 flex-1">
-                    <strong className="block truncate text-xs font-medium" title={site.name}>{site.name || 'Rastplatz'}</strong>
+                    <strong className="block truncate text-xs font-medium" title={site.name}>{site.name || t('parking')}</strong>
                     <span className="block truncate text-xs text-gray-600" title={address}>{address}</span>
                     <span className="mt-0.5 flex items-center gap-1.5 text-xs text-gray-700">
                       <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: occupancyColor(site.occupancy_pct) }} aria-hidden="true" />
-                      {vacant === null ? 'Freie Plätze: keine Daten' : `${estimated ? '~' : ''}${vacant} frei`} · {occupancy}
+                      {vacant === null ? t('freeSpacesShort') : `${estimated ? '~' : ''}${vacant} ${t('freeShort')}`} · {occupancy}
                     </span>
-                    <span className="block text-xs text-gray-600">{Number(feature.properties?.distance_km).toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km Luftlinie</span>
+                    <span className="block text-xs text-gray-600">{t('distance', { distance: Number(feature.properties?.distance_km).toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) })}</span>
                   </div>
                   <a
                     href={buildDirectionsUrl(starOrigin, destination, provider)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    aria-label={`Route zu ${site.name || 'Rastplatz'} in ${providerName} öffnen`}
-                    title={`Route in ${providerName} öffnen`}
+                    aria-label={t('openRoute', { provider: providerName })}
+                    title={t('openRouteShort', { provider: providerName })}
                     className="inline-flex h-11 min-w-11 shrink-0 items-center justify-center rounded border border-gray-200 text-blue-700 hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600"
                   >
                     <Navigation size={19} aria-hidden="true" />
@@ -964,39 +1032,39 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
       )}
       {starActive && starResults.length === 0 && (
         <div role="status" aria-live="polite" className="pointer-events-none absolute bottom-8 left-3 right-14 z-10 w-fit max-w-[calc(100%-4.25rem)] rounded bg-white/95 px-3 py-2 text-xs text-gray-700 shadow">
-          <strong>{starValue} {starUnit} · {distanceMode ? 'Luftlinie' : 'Lkw'} · Live</strong>
-          <span className="ml-2">{routingAvailable === null ? 'Prüfe Routing…' : routingLoading ? 'Berechne Fahrzeit…' : starLoading ? 'Lade Live-Daten…' : routingError || starError || (!starOrigin ? 'Standort ausstehend' : starCount ? `${starCount} Rastplätze` : distanceMode ? 'Keine Rastplätze im Radius' : 'Keine erreichbaren Rastplätze')}</span>
-          {distanceMode && <span className="mt-1 block text-amber-800">Isochronen derzeit nicht verfügbar. Luftlinienentfernung, keine Fahrzeit.</span>}
+          <strong>{starValue} {starUnit} · {distanceMode ? t('airDistance') : t('truck')} · {t('live')}</strong>
+          <span className="ml-2">{routingAvailable === null ? t('checkRouting') : routingLoading ? t('routingLoading') : starLoading ? t('dataLoading') : routingError || starError || (!starOrigin ? t('locationPending') : starCount ? t('parkingCount', { count: starCount }) : distanceMode ? t('noSitesInRadius') : t('noReachableSites'))}</span>
+          {distanceMode && <span className="mt-1 block text-amber-800">{t('noIsochrones')}</span>}
         </div>
       )}
       {loading && (
         <div role="status" aria-live="polite" className="pointer-events-none absolute bottom-3 left-3 z-30 flex items-center gap-2 rounded bg-white/95 px-3 py-2 shadow">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-300 border-t-blue-600" />
-          <span className="text-sm font-medium text-gray-700">Loading</span>
+          <span className="text-sm font-medium text-gray-700">{t('loading')}</span>
         </div>
       )}
       <details ref={basemapMenuRef} name="map-tools" onToggle={event => setBasemapMenuOpen(event.currentTarget.open)} className="absolute top-[49px] right-[10px] z-20 text-sm">
         <summary
-          aria-label="Hintergrundkarte wählen"
-          title="Hintergrundkarte wählen"
+          aria-label={t('basemapChoose')}
+          title={t('basemapChoose')}
           className="map-toolbar-button"
         >
           <Layers size={18} aria-hidden="true" />
         </summary>
         <fieldset className="absolute top-0 right-[39px] w-72 max-w-[calc(100vw-59px)] max-h-[calc(100dvh-12rem)] overflow-y-auto rounded bg-white p-2 shadow-lg ring-1 ring-black/10">
-          <legend className="sr-only">Hintergrundkarte</legend>
+          <legend className="sr-only">{t('basemapLegend')}</legend>
           {!basemapConsent && (
             <div className="space-y-2 p-2 text-xs text-gray-700">
-              <p>Externe Hintergrundkarten sind deaktiviert.</p>
+              <p>{t('externalBasemapsDisabled')}</p>
               <button type="button" onClick={() => {
                 setShowBasemapConsent(true)
                 if (basemapMenuRef.current) basemapMenuRef.current.open = false
-              }} className="min-h-11 rounded border border-gray-300 px-3 py-2 hover:bg-gray-100">Datenschutzauswahl öffnen</button>
+              }} className="min-h-11 rounded border border-gray-300 px-3 py-2 hover:bg-gray-100">{t('privacySettings')}</button>
             </div>
           )}
           <div className="grid grid-cols-2 gap-2">
           {[LOCAL_BASEMAP, ...(basemapConsent ? BASEMAPS : [])].filter(basemap => basemap.id !== 'default' || !BASEMAPS.some(option => option.id !== 'default' && option.style === MAP_STYLE)).map(basemap => (
-            <label key={basemap.id} title={basemap.label} className="relative cursor-pointer">
+            <label key={basemap.id} title={t(BASEMAP_MESSAGE_KEYS[basemap.id] ?? 'standard')} className="relative cursor-pointer">
               <input
                 type="radio"
                 name="basemap"
@@ -1008,24 +1076,24 @@ const Map = forwardRef<MapHandle, MapProps>(function Map(
                   setBasemapId(basemap.id)
                   if (basemapMenuRef.current) basemapMenuRef.current.open = false
                 }}
-                aria-label={basemap.label}
+                aria-label={t(BASEMAP_MESSAGE_KEYS[basemap.id] ?? 'standard')}
                 className="peer sr-only"
               />
               <div className="overflow-hidden rounded border border-gray-200 peer-checked:border-blue-600 peer-checked:ring-1 peer-checked:ring-blue-600 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-blue-600 hover:border-gray-400">
                 {basemap.id === LOCAL_BASEMAP.id ? (
                   <img src="/data/local-basemap-preview.png" alt="" aria-hidden="true" width={560} height={320} className="h-20 w-full object-cover" />
                 ) : basemapMenuOpen ? <BasemapPreview style={basemap.style} /> : <div className="h-20 bg-gray-100" />}
-                <span className="flex h-8 items-center justify-center bg-white px-1 text-xs text-gray-700">{basemap.caption}</span>
+                <span className="flex h-8 items-center justify-center bg-white px-1 text-xs text-gray-700">{t(BASEMAP_MESSAGE_KEYS[basemap.id] ?? 'standard')}</span>
               </div>
             </label>
           ))}
           </div>
           {basemapConsent && <>
           <p className="mt-2 text-[9px] leading-snug text-gray-500">
-            © GeoBasis-DE / BKG {new Date().getFullYear()} · <a href="https://sgx.geodatenzentrum.de/web_public/gdz/datenquellen/datenquellen_topplusopen.html" className="underline" target="_blank" rel="noopener noreferrer">Datenquellen</a><br />
+            © GeoBasis-DE / BKG {new Date().getFullYear()} · <a href="https://sgx.geodatenzentrum.de/web_public/gdz/datenquellen/datenquellen_topplusopen.html" className="underline" target="_blank" rel="noopener noreferrer">{t('sources')}</a><br />
             © Esri, Vantor, Earthstar Geographics, GIS User Community
           </p>
-          <button type="button" onClick={() => chooseBasemapConsent(false)} className="mt-2 min-h-11 w-full rounded border border-gray-300 px-3 py-2 text-xs text-gray-700 hover:bg-gray-100">Einwilligung widerrufen</button>
+          <button type="button" onClick={() => chooseBasemapConsent(false)} className="mt-2 min-h-11 w-full rounded border border-gray-300 px-3 py-2 text-xs text-gray-700 hover:bg-gray-100">{t('revokeConsent')}</button>
           </>}
         </fieldset>
       </details>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useLocale, useTranslations } from 'next-intl'
 import { Search } from 'lucide-react'
 import type { SiteProperties } from './Map'
 
@@ -37,6 +38,8 @@ function OccupancyDot({ pct }: { pct: number | null }) {
 }
 
 export default function SearchBox({ onSelect }: SearchBoxProps) {
+  const locale = useLocale()
+  const t = useTranslations('search')
   const [query, setQuery]       = useState('')
   const [results, setResults]   = useState<SearchResult[]>([])
   const [open, setOpen]         = useState(false)
@@ -113,11 +116,11 @@ export default function SearchBox({ onSelect }: SearchBoxProps) {
           onChange={e => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
           onFocus={() => results.length > 0 && setOpen(true)}
-          placeholder="Parkplatz suchen…"
+          placeholder={t('placeholder')}
           className="min-w-0 flex-1 text-sm outline-none bg-transparent text-gray-800 placeholder-gray-400"
         />
         {query && (
-          <button onClick={() => { setQuery(''); setResults([]); setOpen(false) }} className="text-gray-400 hover:text-gray-600">
+          <button onClick={() => { setQuery(''); setResults([]); setOpen(false) }} aria-label={t('clear')} title={t('clear')} className="text-gray-400 hover:text-gray-600">
             ✕
           </button>
         )}
@@ -138,8 +141,10 @@ export default function SearchBox({ onSelect }: SearchBoxProps) {
               <div className="min-w-0">
                 <div className="font-medium text-gray-800 truncate">{r.name}</div>
                 <div className="text-xs text-gray-400">
-                  {r.occupancy_pct != null ? `${r.occupancy_pct.toFixed(0)} % belegt` : 'Keine Daten'}
-                  {' · '}{r.total_spaces} Plätze
+                  {r.occupancy_pct != null
+                    ? t('occupied', { percent: r.occupancy_pct.toLocaleString(locale, { maximumFractionDigits: 0 }) })
+                    : t('noData')}
+                  {' · '}{t('spaces', { count: r.total_spaces })}
                 </div>
               </div>
             </li>

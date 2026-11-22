@@ -1,8 +1,11 @@
 'use client'
 
 import dynamic from 'next/dynamic'
+import { useTranslations } from 'next-intl'
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { Beer, Building2, Heart, List, MapPinned, Menu, Route, Search, SlidersHorizontal, X } from 'lucide-react'
+import LocaleSwitcher from '@/components/LocaleSwitcher'
+import { Link } from '@/i18n/navigation'
 import RoadFilter from '@/components/RoadFilter'
 import OperatorFilter from '@/components/OperatorFilter'
 import { activeMapFilter, readHighlightedSite, readUrlFilters, updateFilterUrl, updateHighlightedSiteUrl } from '@/lib/filter-url'
@@ -20,6 +23,7 @@ type ViewMode = 'live' | 'history' | 'dailymax'
 const SPONSORS: { name: string; url?: string }[] = []
 
 export default function Home() {
+  const t = useTranslations('home')
   const [selectedSite, setSelectedSite] = useState<SiteProperties | null>(null)
   const [mode, setMode] = useState<ViewMode>('live')
   const [snapshotTime, setSnapshotTime] = useState<Date | null>(null)
@@ -173,11 +177,16 @@ export default function Home() {
     }
     setSelectedSite(site)
     handleSiteOpen(site)
-    mapRef.current?.showPopup(result.longitude, result.latitude, site, 'Auslastung (live)')
+    mapRef.current?.showPopup(result.longitude, result.latitude, site, t('liveOccupancy'))
     if (searchToolRef.current) searchToolRef.current.open = false
-  }, [handleSiteOpen])
+  }, [handleSiteOpen, t])
 
-  const METRIC_LABELS = { max: 'Maximum', mean: 'Mittelwert', median: 'Median', min: 'Minimum' }
+  const metricLabels: Record<DailyMetric, string> = {
+    max: t('dailyMax'),
+    mean: t('dailyMean'),
+    median: t('dailyMedian'),
+    min: t('dailyMinimum'),
+  }
 
   const dataUrl =
     mode === 'dailymax' && dailyDate
@@ -187,9 +196,9 @@ export default function Home() {
       : '/api/sites'
 
   const metricLabel =
-    mode === 'dailymax' ? METRIC_LABELS[dailyMetric] :
-    mode === 'history'  ? 'Auslastung (historisch)' :
-    'Auslastung (live)'
+    mode === 'dailymax' ? metricLabels[dailyMetric] :
+    mode === 'history'  ? t('historicalOccupancy') :
+    t('liveOccupancy')
 
   return (
     <main className="relative w-screen h-screen overflow-hidden">
@@ -205,23 +214,24 @@ export default function Home() {
       {/* Navigation menu above the map controls */}
       <details ref={navigationRef} name="map-tools" className="group absolute top-[10px] right-[10px] z-20 text-sm">
         <summary
-          aria-label="Navigation öffnen"
-          title="Navigation öffnen"
+          aria-label={t('navigationOpen')}
+          title={t('navigationOpen')}
           className="map-toolbar-button"
         >
           <Menu size={18} aria-hidden="true" />
         </summary>
-        <nav aria-label="Hauptnavigation" className="absolute top-[39px] right-[39px] flex w-40 max-w-[calc(100vw-59px)] max-h-[calc(100dvh-8rem)] flex-col overflow-y-auto rounded bg-white shadow-lg ring-1 ring-black/10">
-          <a href="/table" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">Tabelle</a>
-          <a href="https://rast-monitor.de/ogcapi/" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">API</a>
+        <nav aria-label={t('mainNavigation')} className="absolute top-[39px] right-[39px] flex w-40 max-w-[calc(100vw-59px)] max-h-[calc(100dvh-8rem)] flex-col overflow-y-auto rounded bg-white shadow-lg ring-1 ring-black/10">
+          <Link href="/table" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">{t('table')}</Link>
+          <a href="https://rast-monitor.de/ogcapi/" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">{t('api')}</a>
           <button type="button" onClick={() => {
             if (navigationRef.current) navigationRef.current.open = false
             sponsorDialogRef.current?.showModal()
-          }} className="px-4 py-2.5 text-left text-gray-700 hover:bg-gray-100">♥ Sponsor</button>
-          <a href="/downloads" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">Download (GPKG, CSV)</a>
-          <a href="/about" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">Über</a>
-          <a href="/impressum" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">Impressum</a>
-          <a href="https://github.com/riccardoklinger/rastmonitor" target="_blank" rel="noopener noreferrer" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">GitHub</a>
+          }} className="px-4 py-2.5 text-left text-gray-700 hover:bg-gray-100">{t('sponsor')}</button>
+          <Link href="/downloads" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">{t('download')}</Link>
+          <Link href="/about" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">{t('about')}</Link>
+          <Link href="/impressum" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">{t('legal')}</Link>
+          <a href="https://github.com/riccardoklinger/rastmonitor" target="_blank" rel="noopener noreferrer" className="px-4 py-2.5 text-gray-700 hover:bg-gray-100">{t('github')}</a>
+          <div className="border-t border-gray-100 px-4 py-2.5"><LocaleSwitcher /></div>
         </nav>
       </details>
 
@@ -241,8 +251,8 @@ export default function Home() {
         className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md overflow-y-auto rounded-lg bg-white p-0 text-gray-800 shadow-xl backdrop:bg-black/40"
       >
         <div className="flex items-center justify-between border-b border-gray-200 pl-5 pr-2 py-2">
-          <h2 id="sponsor-title" className="text-base font-semibold">RastMonitor unterstützen</h2>
-          <button type="button" onClick={() => sponsorDialogRef.current?.close()} aria-label="Schließen" title="Schließen" className="flex h-11 w-11 items-center justify-center rounded text-gray-600 hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600">
+          <h2 id="sponsor-title" className="text-base font-semibold">{t('sponsorTitle')}</h2>
+          <button type="button" onClick={() => sponsorDialogRef.current?.close()} aria-label={t('close')} title={t('close')} className="flex h-11 w-11 items-center justify-center rounded text-gray-600 hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600">
             <X size={20} aria-hidden="true" />
           </button>
         </div>
@@ -252,11 +262,11 @@ export default function Home() {
               <Heart size={17} aria-hidden="true" /> GitHub Sponsors
             </a>
             <a href="https://www.paypal.com/paypalme/ricckli?locale.x=de_DE" target="_blank" rel="noopener noreferrer" className="flex min-h-11 items-center justify-center gap-2 rounded border border-blue-700 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600">
-              <Beer size={17} aria-hidden="true" /> Ein Bier via PayPal
+              <Beer size={17} aria-hidden="true" /> {t('paypal')}
             </a>
           </div>
           <section aria-labelledby="sponsor-list-title">
-            <h3 id="sponsor-list-title" className="text-sm font-semibold">Unsere Sponsoren</h3>
+            <h3 id="sponsor-list-title" className="text-sm font-semibold">{t('sponsors')}</h3>
             {SPONSORS.length > 0 ? (
               <ul className="mt-2 divide-y divide-gray-100 text-sm">
                 {SPONSORS.map(sponsor => (
@@ -265,7 +275,7 @@ export default function Home() {
                   </li>
                 ))}
               </ul>
-            ) : <p className="mt-2 text-sm text-gray-500">Noch keine Sponsoren eingetragen.</p>}
+            ) : <p className="mt-2 text-sm text-gray-500">{t('noSponsors')}</p>}
           </section>
         </div>
       </dialog>
@@ -273,9 +283,9 @@ export default function Home() {
       {/* Mode toggle — top centre */}
       <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex w-max whitespace-nowrap rounded-lg shadow border border-gray-200 overflow-hidden text-sm font-medium">
         {([
-          ['live',     '● Live'],
-          ['history',  '⏱ 72h'],
-          ['dailymax', '📅 90T'],
+          ['live',     t('modeLive')],
+          ['history',  t('modeHistory')],
+          ['dailymax', t('modeDaily')],
         ] as [ViewMode, string][]).map(([m, label]) => (
           <button
             key={m}
@@ -302,7 +312,7 @@ export default function Home() {
             if (event.currentTarget.open) event.currentTarget.querySelector('input')?.focus()
           }}
         >
-          <summary aria-label="Parkplatz suchen" title="Parkplatz suchen" className="map-toolbar-button">
+          <summary aria-label={t('search')} title={t('search')} className="map-toolbar-button">
             <Search size={18} aria-hidden="true" />
           </summary>
           <div className="absolute top-0 right-[39px] w-72 max-w-[calc(100vw-59px)]">
@@ -320,8 +330,10 @@ export default function Home() {
           }}
         >
           <summary
-            aria-label="Filter öffnen"
-            title={roadFilter || operatorFilter || stateFilter ? `Aktiver Filter: ${roadFilter || operatorFilter || stateFilter}` : 'Filter öffnen'}
+            aria-label={t('filterOpen')}
+            title={roadFilter || operatorFilter || stateFilter
+              ? t('activeFilter', { filter: roadFilter || operatorFilter || stateFilter })
+              : t('filterOpen')}
             data-active={Boolean(roadFilter || operatorFilter || stateFilter)}
             className="map-toolbar-button"
           >
@@ -330,8 +342,8 @@ export default function Home() {
           <div className="absolute top-0 right-[39px] flex gap-[10px]">
             <details ref={roadToolRef} name="filter-tools" className="relative" onToggle={event => setRoadToolOpen(event.currentTarget.open)}>
               <summary
-                aria-label="Autobahn filtern"
-                title={roadFilter ? `Autobahn filtern: ${roadFilter}` : 'Autobahn filtern'}
+                aria-label={t('roadFilter')}
+                title={roadFilter ? t('activeRoadFilter', { filter: roadFilter }) : t('roadFilter')}
                 data-active={Boolean(roadFilter)}
                 className="map-toolbar-button"
               >
@@ -344,8 +356,8 @@ export default function Home() {
 
             <details ref={operatorToolRef} name="filter-tools" className="relative" onToggle={event => setOperatorToolOpen(event.currentTarget.open)}>
               <summary
-                aria-label="Betreiber filtern"
-                title={operatorFilter ? `Betreiber filtern: ${operatorFilter}` : 'Betreiber filtern'}
+                aria-label={t('operatorFilter')}
+                title={operatorFilter ? t('activeOperatorFilter', { filter: operatorFilter }) : t('operatorFilter')}
                 data-active={Boolean(operatorFilter)}
                 className="map-toolbar-button"
               >
@@ -358,8 +370,8 @@ export default function Home() {
 
             <details ref={stateToolRef} name="filter-tools" className="relative" onToggle={event => setStateToolOpen(event.currentTarget.open)}>
               <summary
-                aria-label="Bundesland filtern"
-                title={stateFilter ? `Bundesland filtern: ${stateFilter}` : 'Bundesland filtern'}
+                aria-label={t('stateFilter')}
+                title={stateFilter ? t('activeStateFilter', { filter: stateFilter }) : t('stateFilter')}
                 data-active={Boolean(stateFilter)}
                 className="map-toolbar-button"
               >
@@ -373,22 +385,22 @@ export default function Home() {
         </details>
 
         <details name="map-tools" className="relative">
-          <summary aria-label="Legende anzeigen" title="Legende anzeigen" className="map-toolbar-button">
+          <summary aria-label={t('legend')} title={t('legend')} className="map-toolbar-button">
             <List size={18} aria-hidden="true" />
           </summary>
           <div className="absolute top-0 right-[39px] w-60 max-w-[calc(100vw-59px)] rounded bg-white p-3 shadow-md text-xs space-y-1">
         <p className="font-semibold text-gray-700 mb-1">
           {mode === 'dailymax'
-            ? { max: 'Tagesmaximum', mean: 'Tagesmittel', median: 'Tagesmedian', min: 'Tagesminimum' }[dailyMetric]
-            : 'Auslastung'}
+            ? metricLabels[dailyMetric]
+            : t('occupancy')}
         </p>
         {[
-          ['#22c55e', '< 50 %'],
-          ['#eab308', '50 – 80 %'],
-          ['#f97316', '80 – 95 %'],
-          ['#ef4444', '95 – 100 %'],
-          ['#7f1d1d', '> 100 % (überfüllt)'],
-          ['#9ca3af', 'Keine Daten'],
+          ['#22c55e', t('under50')],
+          ['#eab308', t('from50to80')],
+          ['#f97316', t('from80to95')],
+          ['#ef4444', t('from95to100')],
+          ['#7f1d1d', t('over100')],
+          ['#9ca3af', t('noData')],
         ].map(([color, label]) => (
           <div key={label} className="flex items-center gap-2">
             <span className="inline-block w-3 h-3 rounded-full border border-white" style={{ backgroundColor: color }} />
@@ -406,7 +418,7 @@ export default function Home() {
         <div className="absolute bottom-0 left-0 right-0 h-14 bg-white/80 border-t border-gray-200 flex items-center justify-center z-10">
           <span className="flex items-center gap-2 text-sm text-green-600 font-medium">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            Live-Daten · Aktualisierung alle 15 Minuten
+            {t('liveRefresh')}
           </span>
         </div>
       )}

@@ -1,17 +1,11 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { useLocale, useTranslations } from 'next-intl'
 
 const MAX_DAYS = 90
 
 export type DailyMetric = 'max' | 'mean' | 'median' | 'min'
-
-const METRIC_LABELS: Record<DailyMetric, string> = {
-  max:    'Maximum',
-  mean:   'Mittelwert',
-  median: 'Median',
-  min:    'Minimum',
-}
 
 function toDateString(d: Date): string {
   return d.toISOString().slice(0, 10)
@@ -28,6 +22,8 @@ interface DayPickerProps {
 }
 
 export default function DayPicker({ onChange }: DayPickerProps) {
+  const locale = useLocale()
+  const t = useTranslations('dayPicker')
   const [daysAgo, setDaysAgo] = useState(1)
   const [metric, setMetric]   = useState<DailyMetric>('max')
   const [playing, setPlaying] = useState(false)
@@ -65,6 +61,12 @@ export default function DayPicker({ onChange }: DayPickerProps) {
   }, [])
 
   const isMostRecent = daysAgo <= 1
+  const metricLabels: Record<DailyMetric, string> = {
+    max: t('max'),
+    mean: t('mean'),
+    median: t('median'),
+    min: t('min'),
+  }
 
   return (
     <div className="absolute bottom-0 left-0 right-0 z-10 flex items-center gap-3 bg-white/95 backdrop-blur px-4 py-3 shadow-lg border-t border-gray-200">
@@ -77,7 +79,7 @@ export default function DayPicker({ onChange }: DayPickerProps) {
       <button
         onClick={() => { if (isMostRecent) setDaysAgo(MAX_DAYS); setPlaying(p => !p) }}
         className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-amber-500 text-white hover:bg-amber-600 transition"
-        title={playing ? 'Pause' : 'Wiedergabe'}
+        title={playing ? t('pause') : t('play')}
       >
         {playing ? (
           <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
@@ -96,7 +98,7 @@ export default function DayPicker({ onChange }: DayPickerProps) {
         onChange={(e) => setMetric(e.target.value as DailyMetric)}
         className="flex-shrink-0 text-sm border border-amber-200 rounded px-2 py-1 bg-white text-gray-700 cursor-pointer"
       >
-        {(Object.entries(METRIC_LABELS) as [DailyMetric, string][]).map(([val, label]) => (
+        {(Object.entries(metricLabels) as [DailyMetric, string][]).map(([val, label]) => (
           <option key={val} value={val}>{label}</option>
         ))}
       </select>
@@ -122,7 +124,7 @@ export default function DayPicker({ onChange }: DayPickerProps) {
       />
 
       <div className="flex-shrink-0 text-xs text-amber-700 min-w-[3.5rem] text-right">
-        {new Date(selectedDate).toLocaleDateString('de-DE', {
+        {new Date(selectedDate).toLocaleDateString(locale, {
           weekday: 'short', day: '2-digit', month: '2-digit',
         })}
       </div>

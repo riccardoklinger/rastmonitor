@@ -1,7 +1,10 @@
 'use client'
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import Link from 'next/link'
+import { useLocale, useTranslations } from 'next-intl'
+import { Link } from '@/i18n/navigation'
+import LocaleSwitcher from '@/components/LocaleSwitcher'
+import { getOpeningStatusMessageKey } from '@/lib/opening-status'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -55,25 +58,25 @@ interface ColDef {
 // ── Column definitions ───────────────────────────────────────────────────────
 
 const COLUMNS: ColDef[] = [
-  { key: 'name',                    label: 'Name',             type: 'string', modes: ['live','history','dailymax'], get: r => r.name },
-  { key: 'road_identifier',         label: 'Autobahn',         type: 'exact',  modes: ['live','history','dailymax'], get: r => (r as LiveRow).road_identifier },
-  { key: 'road_destination',        label: 'Richtung',         type: 'string', modes: ['live','history','dailymax'], get: r => (r as LiveRow).road_destination },
-  { key: 'operator_name',           label: 'Betreiber',        type: 'string', modes: ['live','history','dailymax'], get: r => (r as LiveRow).operator_name },
-  { key: 'official_spaces',         label: 'StVO-konform',     type: 'number', modes: ['live','history','dailymax'], get: r => (r as LiveRow).official_spaces },
-  { key: 'tolerated_spaces',        label: 'Geduldet',         type: 'number', modes: ['live','history','dailymax'], get: r => (r as LiveRow).tolerated_spaces },
-  { key: 'total_spaces',            label: 'Gesamt',           type: 'number', modes: ['live','history','dailymax'], get: r => r.total_spaces },
-  { key: 'occupancy_pct',           label: 'Auslastung %',     type: 'number', modes: ['live'],                     get: r => (r as LiveRow).occupancy_pct },
-  { key: 'min_occ',                 label: 'Min %',            type: 'number', modes: ['history','dailymax'],        get: r => (r as AggRow).min_occ },
-  { key: 'mean_occ',                label: 'Mittel %',         type: 'number', modes: ['history','dailymax'],        get: r => (r as AggRow).mean_occ },
-  { key: 'max_occ',                 label: 'Max %',            type: 'number', modes: ['history','dailymax'],        get: r => (r as AggRow).max_occ },
-  { key: 'data_points',             label: 'Messpunkte',       type: 'number', modes: ['history','dailymax'],        get: r => (r as AggRow).data_points },
-  { key: 'usage_scenario',          label: 'Nutzung',          type: 'string', modes: ['live'],                     get: r => (r as LiveRow).usage_scenario },
-  { key: 'location_type',           label: 'Lagetyp',          type: 'string', modes: ['live'],                     get: r => (r as LiveRow).location_type },
-  { key: 'free_of_charge',          label: 'Kostenlos',        type: 'string', modes: ['live'],                     get: r => { const v = (r as LiveRow).free_of_charge; return v == null ? null : v ? 'Ja' : 'Nein' } },
-  { key: 'certified_secure',        label: 'Zert. sicher',     type: 'string', modes: ['live'],                     get: r => { const v = (r as LiveRow).certified_secure; return v == null ? null : v ? 'Ja' : 'Nein' } },
-  { key: 'occupancy_detection_type',label: 'Erfassung',        type: 'string', modes: ['live'],                     get: r => (r as LiveRow).occupancy_detection_type },
-  { key: 'opening_status',          label: 'Status',           type: 'string', modes: ['live'],                     get: r => (r as LiveRow).opening_status },
-  { key: 'fetched_at',              label: 'Aktualisierung',   type: 'datetime', modes: ['live'],                   get: r => (r as LiveRow).fetched_at },
+  { key: 'name',                    label: 'name',                      type: 'string', modes: ['live','history','dailymax'], get: r => r.name },
+  { key: 'road_identifier',         label: 'road_identifier',           type: 'exact',  modes: ['live','history','dailymax'], get: r => (r as LiveRow).road_identifier },
+  { key: 'road_destination',        label: 'road_destination',          type: 'string', modes: ['live','history','dailymax'], get: r => (r as LiveRow).road_destination },
+  { key: 'operator_name',           label: 'operator_name',             type: 'string', modes: ['live','history','dailymax'], get: r => (r as LiveRow).operator_name },
+  { key: 'official_spaces',         label: 'official_spaces',           type: 'number', modes: ['live','history','dailymax'], get: r => (r as LiveRow).official_spaces },
+  { key: 'tolerated_spaces',        label: 'tolerated_spaces',          type: 'number', modes: ['live','history','dailymax'], get: r => (r as LiveRow).tolerated_spaces },
+  { key: 'total_spaces',            label: 'total_spaces',              type: 'number', modes: ['live','history','dailymax'], get: r => r.total_spaces },
+  { key: 'occupancy_pct',           label: 'occupancy_pct',             type: 'number', modes: ['live'],                     get: r => (r as LiveRow).occupancy_pct },
+  { key: 'min_occ',                 label: 'min_occ',                   type: 'number', modes: ['history','dailymax'],        get: r => (r as AggRow).min_occ },
+  { key: 'mean_occ',                label: 'mean_occ',                  type: 'number', modes: ['history','dailymax'],        get: r => (r as AggRow).mean_occ },
+  { key: 'max_occ',                 label: 'max_occ',                   type: 'number', modes: ['history','dailymax'],        get: r => (r as AggRow).max_occ },
+  { key: 'data_points',             label: 'data_points',               type: 'number', modes: ['history','dailymax'],        get: r => (r as AggRow).data_points },
+  { key: 'usage_scenario',          label: 'usage_scenario',            type: 'string', modes: ['live'],                     get: r => (r as LiveRow).usage_scenario },
+  { key: 'location_type',           label: 'location_type',             type: 'string', modes: ['live'],                     get: r => (r as LiveRow).location_type },
+  { key: 'free_of_charge',          label: 'free_of_charge',            type: 'string', modes: ['live'],                     get: r => (r as LiveRow).free_of_charge },
+  { key: 'certified_secure',        label: 'certified_secure',          type: 'string', modes: ['live'],                     get: r => (r as LiveRow).certified_secure },
+  { key: 'occupancy_detection_type',label: 'occupancy_detection_type',  type: 'string', modes: ['live'],                     get: r => (r as LiveRow).occupancy_detection_type },
+  { key: 'opening_status',          label: 'opening_status',            type: 'string', modes: ['live'],                     get: r => (r as LiveRow).opening_status },
+  { key: 'fetched_at',              label: 'fetched_at',                type: 'datetime', modes: ['live'],                   get: r => (r as LiveRow).fetched_at },
 ]
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -87,7 +90,7 @@ function occColor(pct: number | null): string {
   return '#22c55e'
 }
 
-function OccBadge({ pct }: { pct: number | null }) {
+function OccBadge({ pct, locale }: { pct: number | null; locale: string }) {
   if (pct == null) return <span className="text-gray-300">–</span>
   const bg = occColor(pct)
   const color = pct > 100 || pct >= 95 ? 'white' : pct >= 50 ? '#1a1a1a' : 'white'
@@ -96,14 +99,14 @@ function OccBadge({ pct }: { pct: number | null }) {
       className="inline-block px-2 py-0.5 rounded text-xs font-semibold tabular-nums"
       style={{ backgroundColor: bg, color }}
     >
-      {pct.toFixed(1)} %
+      {pct.toLocaleString(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %
     </span>
   )
 }
 
-function fmtDatetime(iso: string | null) {
+function fmtDatetime(iso: string | null, locale: string) {
   if (!iso) return '–'
-  return new Date(iso).toLocaleString('de-DE', {
+  return new Date(iso).toLocaleString(locale, {
     day: '2-digit', month: '2-digit', year: '2-digit',
     hour: '2-digit', minute: '2-digit',
   })
@@ -138,6 +141,9 @@ const OCC_KEYS = new Set(['occupancy_pct', 'min_occ', 'mean_occ', 'max_occ'])
 // ── Main component ───────────────────────────────────────────────────────────
 
 export default function TablePage() {
+  const locale = useLocale()
+  const t = useTranslations('table')
+  const statusT = useTranslations('statuses')
   const [mode, setMode]   = useState<ViewMode>('live')
   const [rows, setRows]   = useState<Row[]>([])
   const [loading, setLoading] = useState(false)
@@ -182,8 +188,11 @@ export default function TablePage() {
   }, [mode])
 
   const activeCols = useMemo(
-    () => COLUMNS.filter(c => c.modes.includes(mode)),
-    [mode]
+    () => COLUMNS.filter(c => c.modes.includes(mode)).map(c => ({
+      ...c,
+      label: t(`columns.${c.label}`),
+    })),
+    [mode, t]
   )
 
   const handleSort = useCallback((key: string) => {
@@ -203,6 +212,7 @@ export default function TablePage() {
         const v = col.get(row)
         if (col.type === 'number') return matchesNumeric(v, f)
         if (col.type === 'exact')  return (v as string ?? '').toUpperCase() === f.trim().toUpperCase()
+        if (typeof v === 'boolean') return t(v ? 'free' : 'notFree').toLowerCase().includes(f.toLowerCase())
         return matchesString(v, f)
       })
     )
@@ -222,9 +232,9 @@ export default function TablePage() {
   }, [rows, filters, activeCols, sortKey, sortDir])
 
   const modeLabel = {
-    live: 'Aktuelle Werte',
-    history: 'Min / Mittel / Max der letzten 72 Stunden',
-    dailymax: 'Min / Mittel / Max der letzten 90 Tage',
+    live: t('liveValues'),
+    history: t('last72Hours'),
+    dailymax: t('last90Days'),
   }[mode]
 
   return (
@@ -232,16 +242,16 @@ export default function TablePage() {
       {/* Top bar */}
       <header className="bg-white border-b shadow-sm px-4 py-3 flex flex-wrap items-center gap-3">
         <Link href="/" className="text-sm text-gray-500 hover:text-gray-800">
-          ← Karte
+          {t('backToMap')}
         </Link>
-        <h1 className="font-semibold text-gray-800 text-sm">Stationsübersicht</h1>
+        <h1 className="font-semibold text-gray-800 text-sm">{t('title')}</h1>
 
         {/* Mode toggle */}
         <div className="flex rounded-lg border border-gray-200 overflow-hidden text-xs font-medium">
           {([
-            ['live',     '● Live'],
-            ['history',  '⏱ 72h'],
-            ['dailymax', '📅 90T'],
+            ['live',     t('modeLive')],
+            ['history',  t('modeHistory')],
+            ['dailymax', t('modeDaily')],
           ] as [ViewMode, string][]).map(([m, label]) => (
             <button
               key={m}
@@ -260,8 +270,9 @@ export default function TablePage() {
         <span className="text-xs text-gray-400 italic">{modeLabel}</span>
 
         <span className="ml-auto text-xs text-gray-400">
-          {loading ? 'Lade…' : `${displayed.length} von ${rows.length} Stationen`}
+          {loading ? t('loading') : t('stationCount', { shown: displayed.length, total: rows.length })}
         </span>
+        <LocaleSwitcher />
 
         <button
           onClick={() => {
@@ -270,7 +281,7 @@ export default function TablePage() {
               activeCols.map(col => {
                 const v = col.get(row)
                 if (v == null) return ''
-                const s = String(v)
+                const s = typeof v === 'boolean' ? t(v ? 'free' : 'notFree') : String(v)
                 return s.includes(',') || s.includes('"') || s.includes('\n')
                   ? `"${s.replace(/"/g, '""')}"` : s
               }).join(',')
@@ -287,17 +298,17 @@ export default function TablePage() {
           disabled={displayed.length === 0}
           className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
         >
-          ⬇ CSV
+          {t('csv')}
         </button>
       </header>
 
       {/* Filter hint */}
       <div className="px-4 py-1.5 text-xs text-gray-400 bg-white border-b">
-        Zahlenfilter:{' '}
+        {t('numberFilter')}{' '}
         {['>50', '<=80', '95'].map(ex => (
           <code key={ex} className="bg-gray-100 px-1 rounded mx-0.5">{ex}</code>
         ))}{' '}
-        · Textfilter: Teilstring
+        · {t('textFilter')}
       </div>
 
       {/* Table */}
@@ -325,7 +336,7 @@ export default function TablePage() {
                     type="text"
                     value={filters[col.key] ?? ''}
                     onChange={e => setFilter(col.key, e.target.value)}
-                    placeholder={col.type === 'number' ? '>50' : col.type === 'exact' ? 'z.B. A2' : 'Filter…'}
+                    placeholder={col.type === 'number' ? '>50' : col.type === 'exact' ? t('roadExample') : t('filter')}
                     className="w-full border border-gray-200 rounded px-1.5 py-0.5 text-xs font-normal focus:outline-none focus:border-blue-400"
                   />
                 </th>
@@ -336,14 +347,14 @@ export default function TablePage() {
             {displayed.length === 0 && !loading && (
               <tr>
                 <td colSpan={activeCols.length} className="text-center py-12 text-gray-400">
-                  Keine Daten
+                  {t('noData')}
                 </td>
               </tr>
             )}
             {loading && (
               <tr>
                 <td colSpan={activeCols.length} className="text-center py-12 text-gray-400">
-                  Lade Daten…
+                  {t('loadingData')}
                 </td>
               </tr>
             )}
@@ -354,11 +365,14 @@ export default function TablePage() {
               >
                 {activeCols.map(col => {
                   const v = col.get(row)
+                  const openingStatusKey = col.key === 'opening_status' && typeof v === 'string'
+                    ? getOpeningStatusMessageKey(v)
+                    : undefined
 
                   if (OCC_KEYS.has(col.key)) {
                     return (
                       <td key={col.key} className="px-3 py-1.5">
-                        <OccBadge pct={v as number | null} />
+                        <OccBadge pct={v as number | null} locale={locale} />
                       </td>
                     )
                   }
@@ -366,14 +380,20 @@ export default function TablePage() {
                   if (col.type === 'datetime') {
                     return (
                       <td key={col.key} className="px-3 py-1.5 text-gray-500 tabular-nums whitespace-nowrap">
-                        {fmtDatetime(v as string | null)}
+                        {fmtDatetime(v as string | null, locale)}
                       </td>
                     )
                   }
 
                   return (
                     <td key={col.key} className="px-3 py-1.5 text-gray-700">
-                      {v == null ? <span className="text-gray-300">–</span> : String(v)}
+                      {v == null
+                        ? <span className="text-gray-300">–</span>
+                        : typeof v === 'boolean'
+                          ? t(v ? 'free' : 'notFree')
+                          : openingStatusKey
+                            ? statusT(openingStatusKey)
+                          : String(v)}
                     </td>
                   )
                 })}

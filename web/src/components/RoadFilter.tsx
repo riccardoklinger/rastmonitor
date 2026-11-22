@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useId, useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { RefreshCw, X } from 'lucide-react'
 
 interface RoadFilterProps {
@@ -9,6 +10,7 @@ interface RoadFilterProps {
 }
 
 export default function RoadFilter({ value, onSelect }: RoadFilterProps) {
+  const t = useTranslations('filters')
   const [query, setQuery] = useState(value)
   const [roads, setRoads] = useState<string[]>([])
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
@@ -43,7 +45,7 @@ export default function RoadFilter({ value, onSelect }: RoadFilterProps) {
   const normalizedQuery = query.toUpperCase().replace(/\s/g, '')
   const options = normalizedQuery
     ? roads.filter(road => road.includes(normalizedQuery)).map(road => ({ value: road, label: road }))
-    : [{ value: '', label: 'Alle Autobahnen' }, ...roads.map(road => ({ value: road, label: road }))]
+    : [{ value: '', label: t('allRoads') }, ...roads.map(road => ({ value: road, label: road }))]
 
   useEffect(() => {
     listRef.current?.children[active]?.scrollIntoView({ block: 'nearest' })
@@ -52,7 +54,7 @@ export default function RoadFilter({ value, onSelect }: RoadFilterProps) {
   return (
     <div className="overflow-hidden rounded bg-white shadow-md">
       <div className="flex items-center gap-2 px-3 py-2">
-        <label htmlFor={inputId} className="text-xs font-medium text-gray-600">Autobahn</label>
+        <label htmlFor={inputId} className="text-xs font-medium text-gray-600">{t('road')}</label>
         <input
           id={inputId}
           autoFocus
@@ -80,21 +82,21 @@ export default function RoadFilter({ value, onSelect }: RoadFilterProps) {
               if (option) onSelect(option.value)
             }
           }}
-          placeholder="z.B. A2"
+          placeholder={t('roadExample')}
           className="min-w-0 flex-1 border border-gray-200 rounded px-2 py-1 text-xs font-mono uppercase focus:outline-none focus:border-blue-400"
         />
         {value && (
           <button
             onClick={() => onSelect('')}
-            aria-label="Autobahnfilter zurücksetzen"
-            title="Autobahnfilter zurücksetzen"
+            aria-label={t('reset', { label: t('road') })}
+            title={t('reset', { label: t('road') })}
             className="flex h-7 w-7 flex-shrink-0 items-center justify-center text-gray-400 hover:text-gray-700"
           >
             <X size={14} aria-hidden="true" />
           </button>
         )}
       </div>
-      <ul ref={listRef} id={listId} role="listbox" aria-label="Autobahnen" className="max-h-[min(18rem,40dvh)] overflow-y-auto border-t border-gray-100">
+      <ul ref={listRef} id={listId} role="listbox" aria-label={t('roads')} className="max-h-[min(18rem,40dvh)] overflow-y-auto border-t border-gray-100">
         {options.map((option, index) => (
           <li
             key={option.value}
@@ -110,12 +112,12 @@ export default function RoadFilter({ value, onSelect }: RoadFilterProps) {
           </li>
         ))}
       </ul>
-      {status === 'loading' && <p role="status" className="px-3 py-2 text-xs text-gray-500">Wird geladen...</p>}
-      {status === 'ready' && options.length === 0 && <p role="status" className="px-3 py-2 text-xs text-gray-500">Keine passende Autobahn</p>}
+      {status === 'loading' && <p role="status" className="px-3 py-2 text-xs text-gray-500">{t('loading')}</p>}
+      {status === 'ready' && options.length === 0 && <p role="status" className="px-3 py-2 text-xs text-gray-500">{t('noRoad')}</p>}
       {status === 'error' && (
         <div role="alert" className="flex items-center gap-2 px-3 py-2 text-xs text-red-700">
-          <span>Autobahnen konnten nicht geladen werden.</span>
-          <button onClick={() => setAttempt(previous => previous + 1)} aria-label="Erneut laden" title="Erneut laden" className="flex h-8 w-8 flex-shrink-0 items-center justify-center">
+          <span>{t('roadsLoadError')}</span>
+          <button onClick={() => setAttempt(previous => previous + 1)} aria-label={t('retry')} title={t('retry')} className="flex h-8 w-8 flex-shrink-0 items-center justify-center">
             <RefreshCw size={16} aria-hidden="true" />
           </button>
         </div>

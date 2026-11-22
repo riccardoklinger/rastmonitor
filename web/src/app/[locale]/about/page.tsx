@@ -1,60 +1,61 @@
+import { useTranslations } from 'next-intl'
+import { Link } from '@/i18n/navigation'
+import LocaleSwitcher from '@/components/LocaleSwitcher'
+
 export default function About() {
+  const t = useTranslations('about')
   return (
     <main className="min-h-screen bg-gray-50 py-12 px-4">
       <div className="max-w-2xl mx-auto bg-white rounded-xl shadow p-8 space-y-6">
-        <a href="/" className="text-sm text-blue-600 hover:underline">← Zurück zur Karte</a>
+        <div className="flex items-center justify-between">
+          <Link href="/" className="text-sm text-blue-600 hover:underline">{t('back')}</Link>
+          <LocaleSwitcher />
+        </div>
 
         <div className="flex items-center gap-3">
           <span className="text-3xl">🚛</span>
-          <h1 className="text-2xl font-bold text-gray-900">Über RastMonitor</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
         </div>
 
         <section className="space-y-2 text-gray-700">
-          <h2 className="font-semibold text-gray-900">Was wird visualisiert?</h2>
+          <h2 className="font-semibold text-gray-900">{t('what')}</h2>
           <p>
-            RastMonitor zeigt die aktuelle und historische Belegung von Lkw-Rastplätzen entlang
-            deutscher Autobahnen in Echtzeit. Die Auslastung jedes Parkplatzes wird farblich
-            dargestellt – von grün (wenig belegt) bis dunkelrot (überfüllt).
+            {t('whatText1')}
           </p>
           <p>
-            Über den <strong>72h-Schieberegler</strong> lässt sich die Belegungsentwicklung der
-            letzten drei Tage in 15-Minuten-Schritten abspielen. Der{' '}
-            <strong>Tagesmax-Modus</strong> zeigt den Spitzenwert eines beliebigen Tages der
-            letzten 90 Tage.
+            {t('whatText2')}
           </p>
         </section>
 
         <section className="space-y-2 text-gray-700">
-          <h2 className="font-semibold text-gray-900">Datenquelle</h2>
+          <h2 className="font-semibold text-gray-900">{t('source')}</h2>
           <p>
-            Die Daten stammen aus dem{' '}
+            {t('sourceLead')}{' '}
             <a
               href="https://mobilithek.info"
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 hover:underline"
             >
-              Mobilithek-Datensatz
+              {t('sourceLink')}
             </a>{' '}
-            der Toll Collect GmbH und werden über die DATEX II-Schnittstelle bereitgestellt.
-            Statische Standortdaten (Name, Koordinaten, Kapazität) werden täglich aktualisiert,
-            Belegungsdaten alle 15 Minuten.
+            {t('sourceTail')}
           </p>
           <p className="text-sm text-gray-500">
-            Datenformat: DATEX II · Lizenz: gemäß Mobilithek-Nutzungsbedingungen
+            {t('formatLicense')}
           </p>
         </section>
 
         <section className="space-y-2 text-gray-700">
-          <h2 className="font-semibold text-gray-900">Farbskala</h2>
+          <h2 className="font-semibold text-gray-900">{t('scale')}</h2>
           <div className="grid grid-cols-2 gap-1 text-sm">
             {[
-              ['#22c55e', '< 50 % – gut verfügbar'],
-              ['#eab308', '50 – 80 % – mäßig belegt'],
-              ['#f97316', '80 – 95 % – stark belegt'],
-              ['#ef4444', '95 – 100 % – fast voll'],
-              ['#7f1d1d', '> 100 % – überfüllt'],
-              ['#9ca3af', 'Keine Daten verfügbar'],
+              ['#22c55e', t('good')],
+              ['#eab308', t('moderate')],
+              ['#f97316', t('busy')],
+              ['#ef4444', t('almostFull')],
+              ['#7f1d1d', t('overcrowded')],
+              ['#9ca3af', t('noData')],
             ].map(([color, label]) => (
               <div key={label} className="flex items-center gap-2">
                 <span
@@ -68,10 +69,9 @@ export default function About() {
         </section>
 
         <section className="space-y-2 text-gray-700">
-          <h2 className="font-semibold text-gray-900">Technologie</h2>
+          <h2 className="font-semibold text-gray-900">{t('technology')}</h2>
           <p className="text-sm">
-            RastMonitor ist ein Open-Source-Projekt. Es verwendet Next.js, MapLibre GL,
-            PostgreSQL/PostGIS und wird in Docker betrieben.
+            {t('technologyText')}
           </p>
           <div className="flex flex-wrap gap-3 pt-1">
             <a
@@ -91,7 +91,7 @@ export default function About() {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-600 text-white text-sm hover:bg-red-700 transition"
             >
-              🐛 Bug melden / Feature anfragen
+              {t('reportBug')}
             </a>
             <a
               href="https://github.com/sponsors/riccardoklinger"
@@ -102,14 +102,14 @@ export default function About() {
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16">
                 <path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.751.751 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/>
               </svg>
-              Sponsor
+              {t('sponsor')}
             </a>
           </div>
         </section>
 
         <footer className="pt-4 border-t border-gray-100 flex justify-between text-xs text-gray-400">
           <span>RastMonitor · Riccardo Schuster</span>
-          <a href="/impressum" className="hover:underline">Impressum</a>
+          <Link href="/impressum" className="hover:underline">{t('imprint')}</Link>
         </footer>
       </div>
     </main>

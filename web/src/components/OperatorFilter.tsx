@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect, useId, useRef, useState } from 'react'
+import { useTranslations } from 'next-intl'
 import { RefreshCw, X } from 'lucide-react'
+import { getStateNameMessageKey } from '@/lib/state-name'
 
 interface OperatorFilterProps {
   value: string
@@ -10,7 +12,8 @@ interface OperatorFilterProps {
 }
 
 export default function OperatorFilter({ value, onSelect, kind = 'operator' }: OperatorFilterProps) {
-  const label = kind === 'state' ? 'Bundesland' : 'Betreiber'
+  const t = useTranslations('filters')
+  const label = t(kind === 'state' ? 'state' : 'operator')
   const [query, setQuery] = useState(value)
   const [operators, setOperators] = useState<string[]>([])
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
@@ -43,9 +46,15 @@ export default function OperatorFilter({ value, onSelect, kind = 'operator' }: O
   }, [attempt, kind])
 
   const normalizedQuery = query.trim().toLowerCase()
+  const displayName = (name: string) => {
+    const key = kind === 'state' ? getStateNameMessageKey(name) : undefined
+    return key ? t(`stateNames.${key}`) : name
+  }
   const options = normalizedQuery
-    ? operators.filter(op => op.toLowerCase().includes(normalizedQuery)).map(op => ({ value: op, label: op }))
-    : [{ value: '', label: kind === 'state' ? 'Alle Bundesländer' : 'Alle Betreiber' }, ...operators.map(op => ({ value: op, label: op }))]
+    ? operators
+      .filter(op => op.toLowerCase().includes(normalizedQuery) || displayName(op).toLowerCase().includes(normalizedQuery))
+      .map(op => ({ value: op, label: displayName(op) }))
+    : [{ value: '', label: t(kind === 'state' ? 'allStates' : 'allOperators') }, ...operators.map(op => ({ value: op, label: displayName(op) }))]
 
   useEffect(() => {
     listRef.current?.children[active]?.scrollIntoView({ block: 'nearest' })
@@ -82,14 +91,14 @@ export default function OperatorFilter({ value, onSelect, kind = 'operator' }: O
               if (option) onSelect(option.value)
             }
           }}
-          placeholder={kind === 'state' ? 'z.B. Hessen' : 'z.B. Autobahn'}
+          placeholder={t(kind === 'state' ? 'stateExample' : 'operatorExample')}
           className="min-w-0 flex-1 border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-400"
         />
         {value && (
           <button
             onClick={() => onSelect('')}
-            aria-label={`${label}filter zurücksetzen`}
-            title={`${label}filter zurücksetzen`}
+            aria-label={t('reset', { label })}
+            title={t('reset', { label })}
             className="flex h-7 w-7 flex-shrink-0 items-center justify-center text-gray-400 hover:text-gray-700"
           >
             <X size={14} aria-hidden="true" />
@@ -112,12 +121,12 @@ export default function OperatorFilter({ value, onSelect, kind = 'operator' }: O
           </li>
         ))}
       </ul>
-      {status === 'loading' && <p role="status" className="px-3 py-2 text-xs text-gray-500">Wird geladen...</p>}
-      {status === 'ready' && options.length === 0 && <p role="status" className="px-3 py-2 text-xs text-gray-500">Keine passenden Ergebnisse</p>}
+      {status === 'loading' && <p role="status" className="px-3 py-2 text-xs text-gray-500">{t('loading')}</p>}
+      {status === 'ready' && options.length === 0 && <p role="status" className="px-3 py-2 text-xs text-gray-500">{t('noResults')}</p>}
       {status === 'error' && (
         <div role="alert" className="flex items-center gap-2 px-3 py-2 text-xs text-red-700">
-          <span>{label} konnte nicht geladen werden.</span>
-          <button onClick={() => setAttempt(previous => previous + 1)} aria-label="Erneut laden" title="Erneut laden" className="flex h-8 w-8 flex-shrink-0 items-center justify-center">
+          <span>{t('loadError', { label })}</span>
+          <button onClick={() => setAttempt(previous => previous + 1)} aria-label={t('retry')} title={t('retry')} className="flex h-8 w-8 flex-shrink-0 items-center justify-center">
             <RefreshCw size={16} aria-hidden="true" />
           </button>
         </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { useTranslations } from 'next-intl'
 
 const WINDOW_HOURS = 72
 const STEP_MINUTES = 15
@@ -16,6 +17,7 @@ interface TimeSliderProps {
 }
 
 export default function TimeSlider({ onChange }: TimeSliderProps) {
+  const t = useTranslations('timeSlider')
   const [step, setStep]       = useState<number>(TOTAL_STEPS)
   const [playing, setPlaying] = useState(false)
   const intervalRef           = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -77,7 +79,7 @@ export default function TimeSlider({ onChange }: TimeSliderProps) {
       <button
         onClick={() => { if (isLive) setStep(0); setPlaying(p => !p) }}
         className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-blue-600 text-white hover:bg-blue-700 transition"
-        title={playing ? 'Pause' : 'Wiedergabe'}
+        title={playing ? t('pause') : t('play')}
       >
         {playing ? (
           <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
@@ -116,14 +118,14 @@ export default function TimeSlider({ onChange }: TimeSliderProps) {
       {isLive ? (
         <span className="flex-shrink-0 inline-flex items-center gap-1 text-sm text-green-600 font-medium min-w-[3.5rem]">
           <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-          Live
+          {t('live')}
         </span>
       ) : (
         <button
           onClick={() => { setPlaying(false); setStep(TOTAL_STEPS) }}
           className="flex-shrink-0 text-xs px-2 py-1 rounded bg-green-100 text-green-700 hover:bg-green-200 transition min-w-[3.5rem] text-center"
         >
-          Live
+          {t('live')}
         </button>
       )}
     </div>
