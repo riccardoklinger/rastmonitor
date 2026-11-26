@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#eef5fb"/>
+  <rect width="1200" height="12" fill="#0b5aa7"/>
+  <circle cx="1050" cy="50" r="290" fill="#e1eef8"/>
+  <circle cx="65" cy="590" r="185" fill="#e1eef8"/>
+  <rect x="70" y="106" width="130" height="130" rx="26" fill="#0b5aa7"/>
+  <text x="135" y="203" fill="#fff" text-anchor="middle" font-family="Arial, sans-serif" font-weight="700" font-size="100">P</text>
+  <circle cx="190" cy="115" r="27" fill="#81c341"/>
+  <path d="m177 115 9 9 17-20" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="70" y="324" fill="#11395b" font-family="Arial, sans-serif" font-weight="700" font-size="82">RastMonitor</text>
+  <text x="74" y="393" fill="#41677f" font-family="Arial, sans-serif" font-size="34">rast-monitor.de</text>
+  <rect x="72" y="451" width="110" height="12" rx="6" fill="#63b74b"/>
+  <rect x="197" y="451" width="110" height="12" rx="6" fill="#f3bf41"/>
+  <rect x="322" y="451" width="110" height="12" rx="6" fill="#e15a52"/>
+  <rect x="662" y="104" width="462" height="422" rx="30" fill="#fff"/>
+  <path d="M741 352 761 303 798 285 805 252 848 238 877 257 909 260 919 292 949 310 936 343 954 371 930 403 896 400 866 421 837 406 801 417 781 390 746 383Z" fill="#67a8e0" fill-opacity=".26" stroke="#478fcd" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M715 462C825 391 767 300 875 245S1009 208 1062 156" fill="none" stroke="#d4e5ee" stroke-width="30" stroke-linecap="round"/>
+  <path d="M715 462C825 391 767 300 875 245S1009 208 1062 156" fill="none" stroke="#82aabd" stroke-width="4" stroke-dasharray="11 15" stroke-linecap="round"/>
+  <circle cx="755" cy="423" r="24" fill="#5caf4b" stroke="#fff" stroke-width="6"/>
+  <circle cx="821" cy="318" r="24" fill="#eeb43d" stroke="#fff" stroke-width="6"/>
+  <circle cx="924" cy="224" r="24" fill="#df6556" stroke="#fff" stroke-width="6"/>
+  <circle cx="1035" cy="178" r="24" fill="#5caf4b" stroke="#fff" stroke-width="6"/>
+  <rect x="935" y="370" width="129" height="62" rx="10" fill="#0b5aa7"/>
+  <text x="999" y="414" fill="#fff" text-anchor="middle" font-family="Arial, sans-serif" font-weight="700" font-size="38">P</text>
+</svg>

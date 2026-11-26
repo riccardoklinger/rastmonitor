@@ -15,9 +15,31 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params
   const t = await getTranslations({ locale, namespace: 'metadata' })
+  const title = t('title')
+  const description = t('description')
+  const image = {
+    url: '/social-preview.png',
+    width: 1200,
+    height: 630,
+    alt: title,
+  }
   return {
-    title: t('title'),
-    description: t('description'),
+    metadataBase: new URL('https://rast-monitor.de'),
+    title,
+    description,
+    openGraph: {
+      type: 'website',
+      siteName: 'RastMonitor',
+      title,
+      description,
+      images: [image],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [image],
+    },
   }
 }
 

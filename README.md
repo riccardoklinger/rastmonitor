@@ -39,6 +39,8 @@ Der Parameter `highlight=DATEX_ID` öffnet und fokussiert genau einen Rastplatz
 (Zoomstufe 10), ohne andere Punkte zu filtern; `DATEX_ID` ist die ID aus der
 Standort-API. Wenn `highlight` und Filterparameter gemeinsam vorkommen, hat
 `highlight` Vorrang.
+Geteilte Links enthalten eine sprachabhängige Beschreibung und ein allgemeines
+Vorschaubild; Filter und markierte Rastplätze ändern die Vorschau nicht.
 Ohne Treffer oder beim Zurücksetzen aller Filter bleibt
 der Kartenausschnitt unverändert. Automatische Datenaktualisierungen verschieben
 die Karte nicht.
